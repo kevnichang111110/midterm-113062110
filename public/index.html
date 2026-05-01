@@ -1,89 +1,231 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Welcome to Firebase Hosting</title>
-
-    <!-- update the version number as needed -->
-    <script defer src="/__/firebase/12.12.1/firebase-app-compat.js"></script>
-    <!-- include only the Firebase features as you need -->
-    <script defer src="/__/firebase/12.12.1/firebase-auth-compat.js"></script>
-    <script defer src="/__/firebase/12.12.1/firebase-database-compat.js"></script>
-    <script defer src="/__/firebase/12.12.1/firebase-firestore-compat.js"></script>
-    <script defer src="/__/firebase/12.12.1/firebase-functions-compat.js"></script>
-    <script defer src="/__/firebase/12.12.1/firebase-messaging-compat.js"></script>
-    <script defer src="/__/firebase/12.12.1/firebase-storage-compat.js"></script>
-    <script defer src="/__/firebase/12.12.1/firebase-analytics-compat.js"></script>
-    <script defer src="/__/firebase/12.12.1/firebase-remote-config-compat.js"></script>
-    <script defer src="/__/firebase/12.12.1/firebase-performance-compat.js"></script>
-    <!-- 
-      initialize the SDK after all desired features are loaded, set useEmulator to false
-      to avoid connecting the SDK to running emulators.
-    -->
-    <script defer src="/__/firebase/init.js?useEmulator=true"></script>
-
-    <style media="screen">
-      body { background: #ECEFF1; color: rgba(0,0,0,0.87); font-family: Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; }
-      #message { background: white; max-width: 360px; margin: 100px auto 16px; padding: 32px 24px; border-radius: 3px; }
-      #message h2 { color: #ffa100; font-weight: bold; font-size: 16px; margin: 0 0 8px; }
-      #message h1 { font-size: 22px; font-weight: 300; color: rgba(0,0,0,0.6); margin: 0 0 16px;}
-      #message p { line-height: 140%; margin: 16px 0 24px; font-size: 14px; }
-      #message a { display: block; text-align: center; background: #039be5; text-transform: uppercase; text-decoration: none; color: white; padding: 16px; border-radius: 4px; }
-      #message, #message a { box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); }
-      #load { color: rgba(0,0,0,0.4); text-align: center; font-size: 13px; }
-      @media (max-width: 600px) {
-        body, #message { margin-top: 0; background: white; box-shadow: none; }
-        body { border-top: 16px solid #ffa100; }
-      }
-    </style>
-  </head>
-  <body>
-    <div id="message">
-      <h2>Welcome</h2>
-      <h1>Firebase Hosting Setup Complete</h1>
-      <p>You're seeing this because you've successfully setup Firebase Hosting. Now it's time to go build something extraordinary!</p>
-      <a target="_blank" href="https://firebase.google.com/docs/hosting/">Open Hosting Documentation</a>
-    </div>
-    <p id="load">Firebase SDK Loading&hellip;</p>
-
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        const loadEl = document.querySelector('#load');
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
-        // // The Firebase SDK is initialized and available here!
-        //
-        // firebase.auth().onAuthStateChanged(user => { });
-        // firebase.database().ref('/path/to/ref').on('value', snapshot => { });
-        // firebase.firestore().doc('/foo/bar').get().then(() => { });
-        // firebase.functions().httpsCallable('yourFunction')().then(() => { });
-        // firebase.messaging().requestPermission().then(() => { });
-        // firebase.storage().ref('/path/to/ref').getDownloadURL().then(() => { });
-        // firebase.analytics(); // call to activate
-        // firebase.analytics().logEvent('tutorial_completed');
-        // firebase.performance(); // call to activate
-        //
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
-
-        try {
-          let app = firebase.app();
-          let features = [
-            'auth', 
-            'database', 
-            'firestore',
-            'functions',
-            'messaging', 
-            'storage', 
-            'analytics', 
-            'remoteConfig',
-            'performance',
-          ].filter(feature => typeof app[feature] === 'function');
-          loadEl.textContent = `Firebase SDK loaded with ${features.join(', ')}`;
-        } catch (e) {
-          console.error(e);
-          loadEl.textContent = 'Error loading the Firebase SDK, check the console.';
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NTHU Chatroom Pro</title>
+    <style>
+        :root {
+            --primary: #0084ff; --bg: #f0f2f5; --white: #fff; --text: #1c1e21; --light: #65676b; --danger: #dc3545;
         }
+        body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; background: var(--bg); }
+        #app { display: flex; height: 100vh; width: 100vw; justify-content: center; align-items: center; }
+        .hidden { display: none !important; }
+
+        /* 登入卡片 */
+        .auth-container { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; }
+        .auth-card { background: var(--white); padding: 40px; border-radius: 12px; width: 100%; max-width: 350px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .auth-card h2 { margin-top: 0; color: var(--primary); }
+        .auth-card input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; transition: 0.2s; }
+        .btn-p { background: var(--primary); color: white; }
+        #auth-error { color: var(--danger); font-size: 0.85rem; margin-top: 10px; min-height: 1.2rem; }
+
+        /* 聊天介面 */
+        #chat-ui { display: flex; width: 100%; height: 100%; }
+        .sidebar { width: 280px; background: var(--white); border-right: 1px solid #ddd; display: flex; flex-direction: column; }
+        .sidebar-header { padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .room-list { flex: 1; overflow-y: auto; }
+        .room-item { padding: 15px; cursor: pointer; border-bottom: 1px solid #f9f9f9; }
+        .room-item.active { background: #e7f3ff; color: var(--primary); border-left: 4px solid var(--primary); }
+
+        .main-chat { flex: 1; display: flex; flex-direction: column; background: var(--white); }
+        .chat-header { padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
+        .chat-messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+        
+        .msg-row { display: flex; flex-direction: column; max-width: 75%; }
+        .msg-row.mine { align-self: flex-end; align-items: flex-end; }
+        .bubble { padding: 10px 15px; border-radius: 18px; font-size: 0.9rem; }
+        .mine .bubble { background: var(--primary); color: white; border-bottom-right-radius: 4px; }
+        .others .bubble { background: #e4e6eb; color: var(--text); border-bottom-left-radius: 4px; }
+        .sender { font-size: 0.7rem; color: var(--light); margin-bottom: 2px; }
+
+        .input-area { padding: 15px; border-top: 1px solid #eee; display: flex; gap: 10px; }
+        #msg-input { flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #ddd; outline: none; }
+        @media (max-width: 600px) { .sidebar { display: none; } }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <!-- 1. 登入區 -->
+    <div id="auth-section" class="auth-container">
+        <div class="auth-card">
+            <h2>NTHU Chat</h2>
+            <input type="email" id="email" placeholder="Email">
+            <input type="password" id="password" placeholder="Password">
+            <div id="auth-error"></div>
+            <button id="login-btn" class="btn btn-p">登入</button>
+            <button id="signup-btn" class="btn" style="background: #28a745; color: white;">註冊新帳號</button>
+        </div>
+    </div>
+
+    <!-- 2. 聊天區 -->
+    <div id="chat-ui" class="hidden">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <strong>聊天室清單</strong>
+                <button id="new-room-btn" style="border:none; background:var(--primary); color:white; border-radius:50%; width:30px; height:30px; cursor:pointer;">+</button>
+            </div>
+            <div id="room-list" class="room-list"></div>
+        </aside>
+
+        <main class="main-chat">
+            <header class="chat-header">
+                <strong id="room-title">請選擇聊天室</strong>
+                <a id="logout-btn" style="color:var(--danger); cursor:pointer; font-size:0.85rem;">登出</a>
+            </header>
+            <div class="chat-messages" id="chat-messages"></div>
+            <div class="input-area">
+                <input type="text" id="msg-input" placeholder="說點什麼吧...">
+                <button id="send-btn" style="border:none; background:none; color:var(--primary); font-weight:bold; cursor:pointer;">發送</button>
+            </div>
+        </main>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
+    import { getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+
+    // 這是你最新的 Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyCPtBwhqkLZAX3qWkGWKvOcBL5vmSxar-0",
+      authDomain: "midterm-chatroom-ebe86.firebaseapp.com",
+      projectId: "midterm-chatroom-ebe86",
+      storageBucket: "midterm-chatroom-ebe86.firebasestorage.app",
+      messagingSenderId: "870088985549",
+      appId: "1:870088985549:web:409ee2cfceb1d14d121284"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    let activeRoomId = null;
+    let unsubRooms = null;
+    let unsubMessages = null;
+
+    const authSection = document.getElementById('auth-section');
+    const chatUi = document.getElementById('chat-ui');
+    const errorEl = document.getElementById('auth-error');
+
+    // --- 安全設定點擊事件 ---
+    const loginBtn = document.getElementById('login-btn');
+    if(loginBtn) loginBtn.onclick = async () => {
+        errorEl.innerText = "";
+        try {
+            await signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value);
+        } catch (e) { errorEl.innerText = "登入失敗: " + e.code; }
+    };
+
+    const signupBtn = document.getElementById('signup-btn');
+    if(signupBtn) signupBtn.onclick = async () => {
+        errorEl.innerText = "";
+        try {
+            await createUserWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value);
+        } catch (e) { errorEl.innerText = "註冊失敗: " + e.code; }
+    };
+
+    const logoutBtn = document.getElementById('logout-btn');
+    if(logoutBtn) logoutBtn.onclick = () => {
+        if (unsubRooms) unsubRooms();
+        if (unsubMessages) unsubMessages();
+        signOut(auth);
+    };
+
+    // --- 監聽登入狀態 ---
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            authSection.classList.add('hidden');
+            chatUi.classList.remove('hidden');
+            loadRooms();
+        } else {
+            authSection.classList.remove('hidden');
+            chatUi.classList.add('hidden');
+            activeRoomId = null;
+        }
+    });
+
+    // --- 聊天室邏輯 ---
+    async function loadRooms() {
+        if (!auth.currentUser) return;
+        if (unsubRooms) unsubRooms();
+
+        const q = query(collection(db, "rooms"), where("members", "array-contains", auth.currentUser.email.toLowerCase()));
+        unsubRooms = onSnapshot(q, (snapshot) => {
+            const list = document.getElementById('room-list');
+            list.innerHTML = "";
+            snapshot.forEach(doc => {
+                const room = doc.data();
+                const div = document.createElement('div');
+                div.className = `room-item ${doc.id === activeRoomId ? 'active' : ''}`;
+                div.innerText = room.name;
+                div.onclick = () => {
+                    activeRoomId = doc.id;
+                    document.getElementById('room-title').innerText = room.name;
+                    loadMessages(doc.id);
+                    loadRooms(); // 刷新選中狀態
+                };
+                list.appendChild(div);
+            });
+        });
+    }
+
+    document.getElementById('new-room-btn').onclick = async () => {
+        const name = prompt("房間名稱:");
+        const invite = prompt("邀請 Email (逗號隔開):");
+        if (!name || !invite) return;
+        const members = [auth.currentUser.email.toLowerCase(), ...invite.split(',').map(e => e.trim().toLowerCase())];
+        await addDoc(collection(db, "rooms"), { name, members, createdAt: serverTimestamp() });
+    };
+
+    function loadMessages(roomId) {
+      if (unsubMessages) unsubMessages();
+      
+      // 建立查詢：過濾 roomId 並按時間 ts 排序
+      const q = query(
+          collection(db, "messages"), 
+          where("roomId", "==", roomId), 
+          orderBy("ts", "asc")
+      );
+
+      unsubMessages = onSnapshot(q, (snap) => {
+          const container = document.getElementById('chat-messages');
+          container.innerHTML = "";
+          snap.forEach(doc => {
+              const m = doc.data();
+              const isMine = m.uid === auth.currentUser.uid;
+              const row = document.createElement('div');
+              row.className = `msg-row ${isMine ? 'mine' : 'others'}`;
+              
+              // 安全處理 Email 顯示
+              const name = m.email ? m.email.split('@')[0] : "匿名";
+              row.innerHTML = `<span class="sender">${name}</span><div class="bubble">${m.text}</div>`;
+              container.appendChild(row);
+          });
+          container.scrollTop = container.scrollHeight;
+      }, (err) => {
+          // 這裡不再使用 alert，改用 console.log 方便偵錯
+          console.log("Firestore 監聽狀態:", err.code, err.message);
+          if (err.code === 'failed-precondition') {
+              console.warn("提示：索引建立中或尚未建立。訊息暫時無法顯示。");
+          }
       });
-    </script>
-  </body>
+    }
+
+    async function sendMsg() {
+        const input = document.getElementById('msg-input');
+        if (!input.value || !activeRoomId) return;
+        await addDoc(collection(db, "messages"), {
+            roomId: activeRoomId, text: input.value, uid: auth.currentUser.uid, email: auth.currentUser.email, ts: serverTimestamp()
+        });
+        input.value = "";
+    }
+
+    document.getElementById('send-btn').onclick = sendMsg;
+    document.getElementById('msg-input').onkeypress = (e) => { if(e.key==='Enter') sendMsg(); };
+</script>
+</body>
 </html>
