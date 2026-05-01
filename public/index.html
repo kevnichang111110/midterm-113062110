@@ -7,122 +7,204 @@
     <style>
       * { box-sizing: border-box; }
       :root { 
-          --primary: #0084ff; 
-          --bg: #dae0e6; 
-          --white: #fff; 
-          --text: #1c1e21; 
-          --light: #65676b; 
-          --danger: #dc3545; 
-          --sidebar-bg: #f7f8f9;
+          --primary: #0084ff; --bg: #dae0e6; --white: #fff; --text: #1c1e21; --light: #65676b; --danger: #dc3545; --sidebar-bg: #f7f8f9;
       }
       body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: sans-serif; background: var(--bg); overflow: hidden; }
-
       #app { display: flex; height: 100vh; width: 100vw; justify-content: center; align-items: center; padding: 20px; }
       .hidden { display: none !important; }
 
-      /* --- 彈窗 (Modal) 樣式 --- */
+      /* --- 彈窗 --- */
       .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
       .modal-card { background: var(--white); padding: 30px; border-radius: 12px; width: 350px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
-      .modal-card h3 { margin-top: 0; color: var(--primary); margin-bottom: 20px; }
       .modal-btns { display: flex; gap: 10px; margin-top: 15px; }
 
-      /* --- 統一輸入框樣式 (重點修正) --- */
-      .auth-card input,
-      .modal-card input { 
+      /* --- 修正登入介面格式 --- */
+      .auth-card input, .modal-card input { 
           width: 100%; 
           padding: 12px 15px; 
           margin: 10px 0; 
           border: 1px solid #ddd; 
           border-radius: 8px; 
-          box-sizing: border-box; 
-          font-size: 14px;
-          outline: none;
-          transition: border-color 0.2s, box-shadow 0.2s;
+          outline: none; 
+          display: block; 
       }
-      .auth-card input:focus,
-      .modal-card input:focus { 
-          border-color: var(--primary); 
-          box-shadow: 0 0 5px rgba(0, 132, 255, 0.2); 
+      .auth-card input:focus, .modal-card input:focus { border-color: var(--primary); box-shadow: 0 0 5px rgba(0, 132, 255, 0.2); }
+
+      .auth-container { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; }
+      .auth-card { 
+          background: var(--white); 
+          padding: 40px; 
+          border-radius: 12px; 
+          width: 100%; 
+          max-width: 360px; 
+          text-align: center; 
+          box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
+          display: flex;
+          flex-direction: column;
       }
+      .auth-card h2 { margin-top: 0; margin-bottom: 20px; color: var(--text); }
+      .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+      .btn-p { background: var(--primary); color: white; margin-top: 10px; }
 
-      /* --- 登入與個人設定 --- */
-      .auth-container { display: flex; flex-direction: column; align-items: center; width: 100%; }
-      .auth-card { background: var(--white); padding: 40px; border-radius: 12px; width: 100%; max-width: 360px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-      .auth-card h2 { margin-top: 0; margin-bottom: 25px; color: var(--text); font-weight: bold; }
-
-      .btn { width: 100%; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; margin-top: 10px; }
-      .btn-p { background: var(--primary); color: white; }
-      .btn-sec { background: #e4e6eb; color: var(--text); }
-
-      /* --- 主介面佈局 --- */
+      /* --- 聊天介面佈局 --- */
       #chat-ui { display: flex; width: 100%; max-width: 1200px; height: 90vh; background: var(--white); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); overflow: hidden; }
-
-      /* 側邊欄與分頁 */
       .sidebar { width: 300px; flex-shrink: 0; background: var(--sidebar-bg); border-right: 1px solid #e0e0e0; display: flex; flex-direction: column; }
       .sidebar-tabs { display: flex; border-bottom: 1px solid #eee; }
-      .tab-btn { flex: 1; padding: 15px; border: none; background: none; cursor: pointer; color: var(--light); font-weight: bold; }
+      .tab-btn { flex: 1; padding: 15px; border: none; background: none; cursor: pointer; color: var(--light); font-weight: bold; font-size: 13px; }
       .tab-btn.active { color: var(--primary); border-bottom: 3px solid var(--primary); background: #fff; }
       
       .sidebar-header { padding: 15px; display: flex; justify-content: space-between; align-items: center; background: #fff; }
       .room-list { flex: 1; overflow-y: auto; }
-      .room-item { padding: 15px 20px; cursor: pointer; border-bottom: 1px solid #f0f0f0; transition: 0.2s; display: flex; align-items: center; gap: 10px; }
-      .room-item:hover { background: #edf2f7; }
+      .room-item { padding: 15px 20px; cursor: pointer; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; }
       .room-item.active { background: #e7f3ff; color: var(--primary); border-left: 5px solid var(--primary); }
+      .badge { background: var(--danger); color: white; border-radius: 10px; padding: 2px 8px; font-size: 10px; font-weight: bold; }
 
-      /* 右側主區域 */
       .main-chat { flex: 1; display: flex; flex-direction: column; min-width: 0; }
       .chat-header { padding: 15px 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
-      .chat-messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; background: #fafafa; }
+      .chat-messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; background: #fafafa; }
 
       /* 訊息樣式 */
-      .msg-row { display: flex; flex-direction: column; max-width: 75%; }
+      .msg-row { display: flex; flex-direction: column; max-width: 80%; }
       .msg-row.mine { align-self: flex-end; align-items: flex-end; }
+      .bubble-container { display: flex; align-items: center; gap: 8px; }
+      .mine .bubble-container { flex-direction: row-reverse; }
       .bubble { padding: 10px 16px; border-radius: 18px; font-size: 0.95rem; line-height: 1.4; }
       .mine .bubble { background: var(--primary); color: white; border-bottom-right-radius: 4px; }
       .others .bubble { background: #fff; border: 1px solid #eee; color: var(--text); border-bottom-left-radius: 4px; }
-      .sender { font-size: 0.7rem; color: var(--light); margin-bottom: 3px; }
-      .msg-img { max-width: 100%; border-radius: 10px; margin-top: 5px; }
+      
+      /* 分隔線樣式 */
+      .unread-divider { width: 100%; text-align: center; border-bottom: 1px solid #ffccd5; line-height: 0.1em; margin: 30px 0 20px; color: var(--danger); font-size: 12px; font-weight: bold; }
+      .unread-divider span { background:#fafafa; padding:0 15px; }
 
+      .unsent-text { font-style: italic; color: #aaa; font-size: 0.85rem; padding: 5px; }
+      .msg-ops { display: none; gap: 5px; }
+      .msg-row:hover .msg-ops { display: flex; }
+      .op-btn { font-size: 10px; padding: 2px 6px; border-radius: 4px; border: 1px solid #ddd; background: #fff; cursor: pointer; }
+      
+      .sender { font-size: 0.75rem; color: var(--light); margin-bottom: 4px; font-weight: bold; }
+      .msg-img { max-width: 250px; border-radius: 10px; margin-top: 5px; }
       .input-area { padding: 15px 20px; border-top: 1px solid #eee; display: flex; gap: 12px; align-items: center; background: #fff; }
       #msg-input { flex: 1; padding: 12px 18px; border-radius: 25px; border: 1px solid #ddd; outline: none; background: #f0f2f5; }
+      .icon-btn { border: none; background: none; cursor: pointer; font-size: 20px; color: var(--primary); }
 
-      .icon-btn { border: none; background: none; cursor: pointer; font-size: 20px; color: var(--primary); padding: 5px; border-radius: 50%; transition: 0.2s; }
-      .icon-btn:hover { background: #eee; }
-  </style>
+      .profile-card { 
+          margin: 12px 12px 8px; 
+          padding: 14px; 
+          border-radius: 14px; 
+          background: #fff; 
+          box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
+          display: flex; 
+          gap: 12px; 
+          align-items: center; 
+          cursor: pointer; /* 鼠標變成手指 */
+          transition: background 0.2s ease; /* 背景色平滑轉場 */
+      }
+      .profile-card:hover {
+          background: #f0f7ff;
+      }
+      .profile-avatar { 
+          width: 54px; 
+          height: 54px; 
+          border-radius: 50%; 
+          background: #e8eef7; 
+          color: var(--primary); 
+          font-weight: bold; 
+          display: flex; 
+          align-items: center; 
+          justify-content: center; 
+          overflow: hidden; 
+          flex-shrink: 0; 
+          transition: all 0.3s ease; /* 加入平滑轉場動畫 */
+      }
+      .profile-card:hover .profile-avatar { 
+          transform: scale(1.1); /* 放大 1.1 倍 */
+          filter: brightness(1.05); /* 稍微增加亮度 */
+          box-shadow: 0 4px 10px rgba(0, 132, 255, 0.2); /* 加入一點點藍色陰影 */
+      }
+      .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+      .profile-meta { min-width: 0; flex: 1; }
+      .profile-name { font-weight: 700; font-size: 15px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .profile-id { font-size: 12px; color: var(--primary); margin-top: 2px; }
+      .profile-status { font-size: 12px; color: var(--light); margin-top: 4px; line-height: 1.35; word-break: break-word; }
+
+      .room-members { padding: 10px 20px 14px; border-bottom: 1px solid #eee; background: #fff; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+      .room-members.hidden { display: none !important; }
+      .member-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; background: #f4f7fb; color: var(--text); font-size: 12px; max-width: 100%; }
+      .member-chip .mini-avatar { width: 20px; height: 20px; border-radius: 50%; overflow: hidden; background: #dfe8f4; color: var(--primary); display: inline-flex; align-items: center; justify-content: center; font-size: 10px; flex-shrink: 0; }
+      .member-chip .mini-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+      .msg-img { max-width: 250px; border-radius: 10px; margin-top: 5px; cursor: zoom-in; transition: transform 0.15s ease; }
+      .msg-img:hover { transform: scale(1.02); }
+
+      .image-preview-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.78); display: flex; align-items: center; justify-content: center; z-index: 3000; padding: 24px; }
+      .image-preview-box { position: relative; max-width: min(92vw, 1100px); max-height: 92vh; }
+      .image-preview-box img { display: block; max-width: 100%; max-height: 92vh; border-radius: 14px; box-shadow: 0 18px 50px rgba(0,0,0,0.35); background: #fff; }
+      .image-preview-close { position: absolute; top: -14px; right: -14px; width: 36px; height: 36px; border: none; border-radius: 50%; background: #fff; cursor: pointer; font-size: 18px; line-height: 36px; box-shadow: 0 8px 22px rgba(0,0,0,0.25); }
+    
+      .avatar-circle { 
+          width: 36px; height: 36px; border-radius: 50%; background: #dfe8f4; 
+          color: var(--primary); display: flex; align-items: center; justify-content: center; 
+          font-weight: bold; overflow: hidden; flex-shrink: 0; font-size: 14px;
+          cursor: pointer;
+          transition: all 0.2s ease; /* 加入平滑轉場 */
+      }
+
+      /* 鼠標懸停效果 */
+      .avatar-circle:hover { 
+          transform: scale(1.1); 
+          filter: brightness(0.9);
+          box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+      }
+      .avatar-circle img { width: 100%; height: 100%; object-fit: cover; }
+
+      /* 訊息樣式修訂：加入頭像與排版 */
+      .msg-row { display: flex; gap: 10px; max-width: 85%; }
+      .msg-row.mine { align-self: flex-end; flex-direction: row-reverse; } /* 自己的訊息頭像在右邊 */
+      .msg-content-wrapper { display: flex; flex-direction: column; }
+      .mine .msg-content-wrapper { align-items: flex-end; }
+    </style>
 </head>
 <body>
 
 <div id="app">
-    <!-- 登入與註冊 -->
     <div id="auth-section" class="auth-container">
         <div class="auth-card" id="login-form">
             <h2>NTHU Chat</h2>
             <input type="email" id="email" placeholder="Email">
             <input type="password" id="password" placeholder="Password">
-            <div id="auth-error" style="color:red; font-size:12px; margin-bottom:10px;"></div>
+            <div id="auth-error" style="color:red; font-size:12px;"></div>
             <button id="login-btn" class="btn btn-p">登入</button>
-            <button id="signup-btn" class="btn" style="background:#28a745; color:white; margin-top:10px;">註冊</button>
+            <button id="signup-btn" class="btn" style="background:#28a745; color:white;">註冊</button>
         </div>
         <div class="auth-card hidden" id="profile-form">
             <h2>個人資料設定</h2>
             <input type="text" id="display-name" placeholder="您的暱稱">
             <input type="text" id="custom-id" placeholder="唯一 ID (例如: kev123)">
+            <input type="text" id="avatar-url" placeholder="頭像圖片網址（可留空）">
+            <input type="text" id="status-message" placeholder="狀態消息（例如：忙碌中）">
             <button id="save-profile-btn" class="btn btn-p">完成</button>
         </div>
     </div>
 
-    <!-- 聊天介面 -->
     <div id="chat-ui" class="hidden">
         <aside class="sidebar">
             <div class="sidebar-tabs">
-                <button class="tab-btn active" onclick="switchTab('private')">好友/私聊</button>
-                <button class="tab-btn" onclick="switchTab('group')">群組聊天</button>
+                <button class="tab-btn active" id="tab-p" onclick="switchTab('private')">好友/私聊</button>
+                <button class="tab-btn" id="tab-g" onclick="switchTab('group')">群組聊天</button>
             </div>
             <div class="sidebar-header">
-                <strong id="list-title">好友</strong>
+                <strong id="list-title">好友清單</strong>
                 <div>
                     <button class="icon-btn" id="add-friend-trigger">👤+</button>
                     <button class="icon-btn" id="add-group-trigger">💬+</button>
+                </div>
+            </div>
+            <div class="profile-card" id="profile-card">
+                <div class="profile-avatar" id="profile-avatar">?</div>
+                <div class="profile-meta">
+                    <div class="profile-name" id="profile-name">-</div>
+                    <div class="profile-id" id="profile-id">@-</div>
+                    <div class="profile-status" id="profile-status">尚未設定狀態消息</div>
                 </div>
             </div>
             <div id="room-list" class="room-list"></div>
@@ -132,13 +214,14 @@
             <header class="chat-header">
                 <div>
                    <strong id="room-title">請選擇聊天室</strong>
-                   <button id="invite-more-btn" class="hidden icon-btn" style="font-size:14px; margin-left:10px;">邀請成員 +</button>
+                   <button id="invite-more-btn" class="hidden icon-btn" style="font-size:14px; margin-left:10px;">邀請 +</button>
                 </div>
                 <div>
                     <span id="my-info" style="font-size:12px; color:var(--light);"></span>
                     <a id="logout-btn" style="color:var(--danger); cursor:pointer; font-size:13px; margin-left:10px;">登出</a>
                 </div>
             </header>
+            <div id="room-members" class="room-members hidden"></div>
             <div class="chat-messages" id="chat-messages"></div>
             <div class="input-area">
                 <label style="font-size:24px; cursor:pointer;">📷<input type="file" id="img-input" accept="image/*" style="display:none;"></label>
@@ -149,14 +232,13 @@
     </div>
 </div>
 
-<!-- --- 彈窗模組 --- -->
 <div id="modal-friend" class="modal-overlay hidden">
     <div class="modal-card">
         <h3>添加好友</h3>
-        <input type="text" id="target-friend-id" placeholder="請輸入對方的 ID">
+        <input type="text" id="target-friend-id" placeholder="對方的 ID">
         <div class="modal-btns">
-            <button class="btn btn-sec" onclick="closeModals()">取消</button>
-            <button class="btn btn-p" id="confirm-add-friend">加入</button>
+            <button class="btn" style="flex:1;" onclick="closeModals()">取消</button>
+            <button class="btn btn-p" style="flex:1;" id="confirm-add-friend">加入</button>
         </div>
     </div>
 </div>
@@ -165,21 +247,60 @@
     <div class="modal-card">
         <h3>建立新群組</h3>
         <input type="text" id="target-group-name" placeholder="群組名稱">
-        <input type="text" id="target-group-members" placeholder="成員 ID (用逗號隔開)">
+        <input type="text" id="target-group-members" placeholder="成員 ID (逗號隔開)">
         <div class="modal-btns">
-            <button class="btn btn-sec" onclick="closeModals()">取消</button>
-            <button class="btn btn-p" id="confirm-add-group">建立</button>
+            <button class="btn" style="flex:1;" onclick="closeModals()">取消</button>
+            <button class="btn btn-p" style="flex:1;" id="confirm-add-group">建立</button>
         </div>
     </div>
 </div>
-
-<div id="modal-invite" class="modal-overlay hidden">
+<div id="image-preview-modal" class="image-preview-overlay hidden">
+    <div class="image-preview-box">
+        <button id="close-image-preview" class="image-preview-close">×</button>
+        <img id="image-preview" src="" alt="預覽圖片">
+    </div>
+</div>
+<div id="modal-edit-profile" class="modal-overlay hidden">
     <div class="modal-card">
-        <h3>邀請成員進入群組</h3>
-        <input type="text" id="target-invite-id" placeholder="請輸入對方的 ID">
+        <h3>編輯個人資料</h3>
+        <div class="avatar-circle" id="edit-avatar-preview" style="width:70px; height:70px; margin: 0 auto 10px;">?</div>
+        <input type="text" id="edit-avatar-url" placeholder="頭像圖片網址">
+        <input type="text" id="edit-display-name" placeholder="顯示暱稱">
+        <input type="text" id="edit-status-message" placeholder="狀態消息">
         <div class="modal-btns">
-            <button class="btn btn-sec" onclick="closeModals()">取消</button>
-            <button class="btn btn-p" id="confirm-invite">邀請</button>
+            <button class="btn" style="flex:1; background:#eee;" onclick="closeModals()">取消</button>
+            <button class="btn btn-p" style="flex:1;" id="confirm-edit-profile">儲存</button>
+        </div>
+    </div>
+</div>
+<!-- 查看他人資料彈窗 -->
+<div id="modal-view-user" class="modal-overlay hidden" onclick="closeModals()">
+    <div class="modal-card" onclick="event.stopPropagation()">
+        <h3>使用者資料</h3>
+        <div class="avatar-circle" id="view-user-avatar" style="width:100px; height:100px; margin: 0 auto 15px; font-size: 40px;">?</div>
+        <h2 id="view-user-name" style="margin: 5px 0;">-</h2>
+        <div id="view-user-id" style="color: var(--primary); margin-bottom: 15px;">@-</div>
+        <hr style="border: 0; border-top: 1px solid #eee;">
+        <p id="view-user-status" style="color: var(--light); padding: 10px;"></p>
+        <button class="btn btn-p" onclick="closeModals()">關閉</button>
+    </div>
+</div>
+
+<!-- 修改後的編輯彈窗 (改為上傳檔案) -->
+<div id="modal-edit-profile" class="modal-overlay hidden">
+    <div class="modal-card">
+        <h3>編輯個人資料</h3>
+        <div class="avatar-circle" id="edit-avatar-preview" style="width:70px; height:70px; margin: 0 auto 10px;">?</div>
+        <!-- 修改處：將輸入框改為檔案上傳 -->
+        <label class="btn" style="background: #f0f2f5; margin-bottom: 10px; display: block;">
+            📷 更換頭像圖片
+            <input type="file" id="edit-avatar-file" accept="image/*" style="display:none;">
+        </label>
+        <input type="text" id="edit-display-name" placeholder="顯示暱稱">
+        <input type="text" id="edit-status-message" placeholder="狀態消息">
+        <div class="modal-btns">
+            <button class="btn" style="flex:1; background:#eee;" onclick="closeModals()">取消</button>
+            <button class="btn btn-p" style="flex:1;" id="confirm-edit-profile">儲存</button>
         </div>
     </div>
 </div>
@@ -187,7 +308,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc, setDoc, getDoc, doc, query, where, orderBy, onSnapshot, serverTimestamp, getDocs, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, setDoc, getDoc, doc, query, where, orderBy, onSnapshot, serverTimestamp, getDocs, updateDoc, arrayUnion, Timestamp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCPtBwhqkLZAX3qWkGWKvOcBL5vmSxar-0",
@@ -204,167 +325,314 @@
 
     let currentUserData = null;
     let activeRoomId = null;
-    let currentTab = 'private'; // 'private' or 'group'
+    let activeRoomData = null;
+    let currentTab = 'private';
     let unsubRooms = null, unsubMessages = null;
+    let userCache = {};
 
-    // --- 彈窗控制 ---
-    window.closeModals = () => document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden'));
-    document.getElementById('add-friend-trigger').onclick = () => document.getElementById('modal-friend').classList.remove('hidden');
-    document.getElementById('add-group-trigger').onclick = () => document.getElementById('modal-group').classList.remove('hidden');
-    document.getElementById('invite-more-btn').onclick = () => document.getElementById('modal-invite').classList.remove('hidden');
+    const escapeHTML = (str = '') => String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
 
-    // --- 身份驗證 ---
-    document.getElementById('login-btn').onclick = async () => {
-        try { await signInWithEmailAndPassword(auth, email.value, password.value); } 
-        catch (e) { document.getElementById('auth-error').innerText = "登入失敗: " + e.code; }
+    const resolveDisplayName = (customId, fallback = '') => {
+        const key = (customId || '').toLowerCase();
+        return userCache[key]?.displayName || fallback || key;
     };
 
-    document.getElementById('signup-btn').onclick = async () => {
-        try { await createUserWithEmailAndPassword(auth, email.value, password.value); } 
-        catch (e) { document.getElementById('auth-error').innerText = "註冊失敗: " + e.code; }
+    const getAvatarLabel = (name = '', customId = '') => {
+        const base = (name || customId || '?').trim();
+        return base ? base.slice(0, 1).toUpperCase() : '?';
     };
 
-    document.getElementById('logout-btn').onclick = () => {
-        if(unsubRooms) unsubRooms();
-        if(unsubMessages) unsubMessages();
-        signOut(auth);
-    };
-
-    document.getElementById('save-profile-btn').onclick = async () => {
-        const name = document.getElementById('display-name').value.trim();
-        const cid = document.getElementById('custom-id').value.trim().toLowerCase();
-        if(!name || !cid) return alert("請填寫資料");
-        const idCheck = await getDocs(query(collection(db, "users"), where("customId", "==", cid)));
-        if(!idCheck.empty) return alert("ID 已存在");
-        await setDoc(doc(db, "users", auth.currentUser.uid), { displayName: name, customId: cid, email: auth.currentUser.email });
-        checkUserProfile(auth.currentUser);
-    };
-
-    async function checkUserProfile(user) {
-        const userDoc = await getDoc(doc(db, "users", user.uid));
-        if (userDoc.exists()) {
-            currentUserData = userDoc.data();
-            document.getElementById('my-info').innerText = `${currentUserData.displayName} (@${currentUserData.customId})`;
-            document.getElementById('auth-section').classList.add('hidden');
-            document.getElementById('chat-ui').classList.remove('hidden');
-            loadRooms();
+    function renderAvatar(el, user = {}) {
+        if (!el) return;
+        el.innerHTML = '';
+        const avatarUrl = (user.avatarUrl || '').trim();
+        if (avatarUrl) {
+            const img = document.createElement('img');
+            img.src = avatarUrl;
+            img.alt = user.displayName || user.customId || 'avatar';
+            el.appendChild(img);
         } else {
-            document.getElementById('login-form').classList.add('hidden');
-            document.getElementById('profile-form').classList.remove('hidden');
+            el.textContent = getAvatarLabel(user.displayName, user.customId);
         }
     }
 
-    onAuthStateChanged(auth, (user) => {
-        if (user) checkUserProfile(user);
-        else {
-            document.getElementById('chat-ui').classList.add('hidden');
+    function renderCurrentUserProfile() {
+        if (!currentUserData) return;
+        const avatarEl = document.getElementById('profile-avatar');
+        const nameEl = document.getElementById('profile-name');
+        const idEl = document.getElementById('profile-id');
+        const statusEl = document.getElementById('profile-status');
+        if (avatarEl) renderAvatar(avatarEl, currentUserData);
+        if (nameEl) nameEl.textContent = currentUserData.displayName || '-';
+        if (idEl) idEl.textContent = `@${currentUserData.customId || '-'}`;
+        if (statusEl) statusEl.textContent = currentUserData.statusMessage || '尚未設定狀態消息';
+        const myInfo = document.getElementById('my-info');
+        if (myInfo) myInfo.innerText = `${currentUserData.displayName} (@${currentUserData.customId})`;
+    }
+
+    async function refreshUserCache() {
+        userCache = {};
+        const snap = await getDocs(collection(db, 'users'));
+        snap.forEach((d) => {
+            const u = d.data();
+            if (u?.customId) userCache[u.customId.toLowerCase()] = u;
+        });
+    }
+
+    function renderGroupMembers(roomData) {
+        const membersEl = document.getElementById('room-members');
+        if (!membersEl) return;
+
+        if (!roomData || roomData.type !== 'group') {
+            membersEl.innerHTML = '';
+            membersEl.classList.add('hidden');
+            return;
+        }
+
+        membersEl.classList.remove('hidden');
+        membersEl.innerHTML = '';
+
+        const members = Array.isArray(roomData.members) ? roomData.members : [];
+        if (!members.length) {
+            membersEl.innerHTML = '<span style="font-size:12px; color: var(--light);">沒有成員資料</span>';
+            return;
+        }
+
+        members.forEach((id) => {
+            const data = userCache[id.toLowerCase()] || {};
+            const chip = document.createElement('span');
+            chip.className = 'member-chip';
+
+            const avatar = document.createElement('span');
+            avatar.className = 'mini-avatar';
+            const avatarUrl = (data.avatarUrl || '').trim();
+            if (avatarUrl) {
+                const img = document.createElement('img');
+                img.src = avatarUrl;
+                img.alt = data.displayName || id;
+                avatar.appendChild(img);
+            } else {
+                avatar.textContent = getAvatarLabel(data.displayName, id);
+            }
+
+            const label = document.createElement('span');
+            label.textContent = `${data.displayName || id} (@${id})`;
+
+            chip.appendChild(avatar);
+            chip.appendChild(label);
+            membersEl.appendChild(chip);
+        });
+    }
+
+    function openImagePreview(src) {
+        const modal = document.getElementById('image-preview-modal');
+        const img = document.getElementById('image-preview');
+        if (!modal || !img || !src) return;
+        img.src = src;
+        modal.classList.remove('hidden');
+    }
+
+    function closeImagePreview() {
+        const modal = document.getElementById('image-preview-modal');
+        const img = document.getElementById('image-preview');
+        if (!modal || !img) return;
+        modal.classList.add('hidden');
+        img.src = '';
+    }
+
+    window.closeModals = () => document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden'));
+    document.getElementById('add-friend-trigger').onclick = () => document.getElementById('modal-friend').classList.remove('hidden');
+    document.getElementById('add-group-trigger').onclick = () => document.getElementById('modal-group').classList.remove('hidden');
+    document.getElementById('logout-btn').onclick = () => { if(unsubRooms) unsubRooms(); if(unsubMessages) unsubMessages(); signOut(auth); };
+    document.getElementById('image-preview-modal').onclick = (e) => {
+        if (e.target.id === 'image-preview-modal') closeImagePreview();
+    };
+    document.getElementById('close-image-preview').onclick = closeImagePreview;
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeModals();
+            closeImagePreview();
+        }
+    });
+
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            const userDoc = await getDoc(doc(db, "users", user.uid));
+            if (userDoc.exists()) {
+                currentUserData = userDoc.data();
+                await refreshUserCache();
+                document.getElementById('auth-section').classList.add('hidden');
+                document.getElementById('chat-ui').classList.remove('hidden');
+                renderCurrentUserProfile();
+                loadRooms();
+            } else {
+                document.getElementById('auth-section').classList.remove('hidden');
+                document.getElementById('login-form').classList.add('hidden');
+                document.getElementById('profile-form').classList.remove('hidden');
+            }
+        } else {
             document.getElementById('auth-section').classList.remove('hidden');
+            document.getElementById('chat-ui').classList.add('hidden');
             document.getElementById('login-form').classList.remove('hidden');
         }
     });
 
-    // --- 好友與群組邏輯 ---
+    document.getElementById('login-btn').onclick = async () => {
+        try { await signInWithEmailAndPassword(auth, email.value, password.value); } 
+        catch (e) { document.getElementById('auth-error').innerText = "登入失敗"; }
+    };
+    document.getElementById('signup-btn').onclick = async () => {
+        try { await createUserWithEmailAndPassword(auth, email.value, password.value); } 
+        catch (e) { document.getElementById('auth-error').innerText = "註冊失敗"; }
+    };
+    document.getElementById('save-profile-btn').onclick = async () => {
+        const name = document.getElementById('display-name').value.trim();
+        const cid = document.getElementById('custom-id').value.trim().toLowerCase();
+        const avatarUrl = document.getElementById('avatar-url').value.trim();
+        const statusMessage = document.getElementById('status-message').value.trim();
+        if(!name || !cid) return;
+        await setDoc(doc(db, "users", auth.currentUser.uid), {
+            displayName: name,
+            customId: cid,
+            email: auth.currentUser.email,
+            avatarUrl,
+            statusMessage
+        }, { merge: true });
+        location.reload();
+    };
+
     window.switchTab = (tab) => {
         currentTab = tab;
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.innerText.includes(tab === 'private' ? '好友' : '群組')));
+        document.getElementById('tab-p').classList.toggle('active', tab==='private');
+        document.getElementById('tab-g').classList.toggle('active', tab==='group');
         loadRooms();
     };
 
     async function loadRooms() {
         if (!currentUserData) return;
         if (unsubRooms) unsubRooms();
-        
-        // 抓取包含自己的所有房間
         const q = query(collection(db, "rooms"), where("members", "array-contains", currentUserData.customId));
-        unsubRooms = onSnapshot(q, (snap) => {
+        
+        unsubRooms = onSnapshot(q, async (snap) => {
             const list = document.getElementById('room-list');
-            list.innerHTML = "";
-            snap.forEach(doc => {
-                const room = doc.data();
-                // 根據當前分頁過濾
-                if (room.type === currentTab) {
-                    const div = document.createElement('div');
-                    div.className = `room-item ${doc.id === activeRoomId ? 'active' : ''}`;
-                    div.innerText = room.type === 'private' ? room.name.replace(currentUserData.displayName, "").replace("&", "").trim() : room.name;
-                    div.onclick = () => {
-                        activeRoomId = doc.id;
-                        document.getElementById('room-title').innerText = div.innerText;
-                        document.getElementById('invite-more-btn').classList.toggle('hidden', room.type !== 'group');
-                        loadMessages(doc.id);
-                        loadRooms();
-                    };
-                    list.appendChild(div);
+            const promises = snap.docs.map(async (roomDoc) => {
+                const room = roomDoc.data();
+                if (room.type !== currentTab) return null;
+
+                let title = room.name;
+                if (room.type === 'private') {
+                    const otherId = room.members.find(m => m !== currentUserData.customId);
+                    const name = room.memberDetails?.[otherId]?.name || resolveDisplayName(otherId, otherId);
+                    title = `${name} (@${otherId})`;
+                } else if (room.type === 'group') {
+                    title = `${room.name} (${room.members?.length || 0}人)`;
                 }
+
+                // 計算未讀：排除自己發送的訊息
+                const lastRead = room.lastRead?.[currentUserData.customId] || new Timestamp(0, 0);
+                const unreadQuery = query(collection(db, "messages"), 
+                    where("roomId", "==", roomDoc.id), 
+                    where("ts", ">", lastRead)
+                );
+                const unreadSnap = await getDocs(unreadQuery);
+                // 過濾掉自己發的
+                const unreadCount = roomDoc.id === activeRoomId
+                    ? 0
+                    : unreadSnap.docs.filter(d => d.data().uid !== auth.currentUser.uid).length;
+                
+                return { id: roomDoc.id, title, unreadCount, data: room };
+            });
+
+            const results = await Promise.all(promises);
+            list.innerHTML = ""; 
+            results.filter(r => r !== null).forEach(res => {
+                const div = document.createElement('div');
+                div.className = `room-item ${res.id === activeRoomId ? 'active' : ''}`;
+                div.innerHTML = `<span>${res.title}</span>${res.unreadCount > 0 ? `<span class="badge">${res.unreadCount}</span>` : ''}`;
+                div.onclick = () => openRoom(res.id, res.title, res.data);
+                list.appendChild(div);
             });
         });
     }
 
-    // 添加好友 (建立私聊)
-    document.getElementById('confirm-add-friend').onclick = async () => {
-        const targetId = document.getElementById('target-friend-id').value.trim().toLowerCase();
-        if(!targetId || targetId === currentUserData.customId) return;
-        
-        const q = await getDocs(query(collection(db, "users"), where("customId", "==", targetId)));
-        if(q.empty) return alert("找不到此用戶");
-        
-        const targetUser = q.docs[0].data();
-        // 建立私聊房間
-        await addDoc(collection(db, "rooms"), {
-            name: `${currentUserData.displayName} & ${targetUser.displayName}`,
-            type: 'private',
-            members: [currentUserData.customId, targetId],
-            ts: serverTimestamp()
-        });
-        closeModals();
-        switchTab('private');
-    };
+    async function openRoom(roomId, title, roomData) {
+        activeRoomId = roomId;
+        activeRoomData = roomData;
+        document.getElementById('room-title').innerText = title;
+        document.getElementById('invite-more-btn').classList.toggle('hidden', roomData.type !== 'group');
+        renderGroupMembers(roomData);
+        const lastReadTs = roomData.lastRead?.[currentUserData.customId];
+        await updateDoc(doc(db, "rooms", roomId), { [`lastRead.${currentUserData.customId}`]: serverTimestamp() });
+        loadMessages(roomId, roomData, lastReadTs);
+        loadRooms();
+    }
 
-    // 建立群組
-    document.getElementById('confirm-add-group').onclick = async () => {
-        const name = document.getElementById('target-group-name').value.trim();
-        const ids = document.getElementById('target-group-members').value.split(',').map(i => i.trim().toLowerCase());
-        if(!name) return;
-        
-        await addDoc(collection(db, "rooms"), {
-            name: name,
-            type: 'group',
-            members: [currentUserData.customId, ...ids],
-            ts: serverTimestamp()
-        });
-        closeModals();
-        switchTab('group');
-    };
-
-    // 邀請更多人
-    document.getElementById('confirm-invite').onclick = async () => {
-        const newId = document.getElementById('target-invite-id').value.trim().toLowerCase();
-        if(!newId || !activeRoomId) return;
-        
-        const q = await getDocs(query(collection(db, "users"), where("customId", "==", newId)));
-        if(q.empty) return alert("找不到此用戶");
-
-        await updateDoc(doc(db, "rooms", activeRoomId), {
-            members: arrayUnion(newId)
-        });
-        alert("邀請成功！");
-        closeModals();
-    };
-
-    // --- 訊息發送 ---
-    function loadMessages(roomId) {
+    function loadMessages(roomId, roomData, lastReadTs) {
         if(unsubMessages) unsubMessages();
         const q = query(collection(db, "messages"), where("roomId", "==", roomId), orderBy("ts", "asc"));
+        let dividerInjected = false;
+
         unsubMessages = onSnapshot(q, (snap) => {
             const container = document.getElementById('chat-messages');
             container.innerHTML = "";
-            snap.forEach(doc => {
-                const m = doc.data();
+            dividerInjected = false;
+
+            snap.forEach(docSnap => {
+                const m = docSnap.data();
+                if (m.deletedBy?.includes(currentUserData.customId)) return;
+
+                // 未讀分隔線
+                if (!dividerInjected && lastReadTs && m.ts && m.ts.toMillis() > lastReadTs.toMillis() && m.uid !== auth.currentUser.uid) {
+                    const hr = document.createElement('div');
+                    hr.className = "unread-divider";
+                    hr.innerHTML = "<span>以下為未讀訊息</span>";
+                    container.appendChild(hr);
+                    dividerInjected = true;
+                }
+
                 const isMine = m.uid === auth.currentUser.uid;
                 const row = document.createElement('div');
                 row.className = `msg-row ${isMine ? 'mine' : 'others'}`;
-                let content = m.type === 'image' ? `<img src="${m.content}" class="msg-img">` : `<div class="bubble">${m.content}</div>`;
-                row.innerHTML = `<span class="sender">${m.senderName}</span>${content}`;
+
+                // --- 修改 B 點：加入發送者資料與頭像 HTML ---
+                const sender = userCache[m.senderId.toLowerCase()] || { displayName: m.senderId };
+                const avatarHTML = `<div class="avatar-circle" onclick="viewUserProfile('${m.senderId}')">${getAvatarHTML(sender, m.senderId)}</div>`;
+                
+                let contentHTML = "";
+                if (m.isUnsent) {
+                    // 已收回訊息的樣式
+                    contentHTML = `
+                        ${avatarHTML}
+                        <div class="msg-content-wrapper">
+                            <div class="unsent-text">${escapeHTML(sender.displayName || m.senderId)} 已收回訊息</div>
+                        </div>`;
+                } else {
+                    const body = m.type === 'image'
+                        ? `<img src="${m.content}" class="msg-img zoomable-img" data-src="${m.content}" alt="訊息圖片">`
+                        : `<div class="bubble">${escapeHTML(m.content)}</div>`;
+                    
+                    const ops = isMine ? `<div class="msg-ops"><span class="op-btn" onclick="unsendMsg('${docSnap.id}')">收回</span></div>` : "";
+                    
+                    // 正常訊息樣式：加入內容包裹器 (msg-content-wrapper)
+                    contentHTML = `
+                        ${avatarHTML}
+                        <div class="msg-content-wrapper">
+                            <span class="sender">${escapeHTML(sender.displayName || m.senderId)} (@${escapeHTML(m.senderId)})</span>
+                            <div class="bubble-container">${body}${ops}</div>
+                        </div>`;
+                }
+                
+                row.innerHTML = contentHTML;
                 container.appendChild(row);
+            });
+
+            container.querySelectorAll('.zoomable-img').forEach((img) => {
+                img.onclick = () => openImagePreview(img.dataset.src || img.src);
             });
             container.scrollTop = container.scrollHeight;
         });
@@ -374,34 +642,162 @@
         if(!activeRoomId || !content) return;
         await addDoc(collection(db, "messages"), {
             roomId: activeRoomId, uid: auth.currentUser.uid, senderName: currentUserData.displayName,
-            senderId: currentUserData.customId, content: content, type: type, ts: serverTimestamp()
+            senderId: currentUserData.customId, content, type, ts: serverTimestamp(), isUnsent: false
+        });
+        // 自己發送訊息時，也同步更新自己的 lastRead，避免自己看到自己的訊息變成「未讀」
+        await updateDoc(doc(db, "rooms", activeRoomId), { 
+            lastMessageAt: serverTimestamp(),
+            [`lastRead.${currentUserData.customId}`]: serverTimestamp()
         });
         document.getElementById('msg-input').value = "";
     }
 
-    document.getElementById('send-btn').onclick = () => sendMsg(document.getElementById('msg-input').value);
-    document.getElementById('msg-input').onkeypress = (e) => { if(e.key==='Enter') sendMsg(e.target.value); };
+    // 取得頭像 HTML 內容的輔助函式
+    function getAvatarHTML(user = {}, customId = '?') {
+        const url = (user.avatarUrl || '').trim();
+        if (url) return `<img src="${url}" alt="avatar">`;
+        const char = (user.displayName || customId || '?').charAt(0).toUpperCase();
+        return char;
+    }
 
-    // 圖片壓縮發送 (同前版)
-    document.getElementById('img-input').onchange = (e) => {
+
+    window.unsendMsg = async (msgId) => {
+        if(confirm("確定要收回訊息嗎？")) await updateDoc(doc(db, "messages", msgId), { isUnsent: true, content: "" });
+    };
+    window.viewUserProfile = (customId) => {
+        const user = userCache[customId.toLowerCase()];
+        if (!user) return;
+        
+        const avatarEl = document.getElementById('view-user-avatar');
+        const nameEl = document.getElementById('view-user-name');
+        const idEl = document.getElementById('view-user-id');
+        const statusEl = document.getElementById('view-user-status');
+        
+        avatarEl.innerHTML = getAvatarHTML(user, customId);
+        nameEl.textContent = user.displayName || customId;
+        idEl.textContent = `@${user.customId}`;
+        statusEl.textContent = user.statusMessage || "這傢伙很懶，什麼都沒留下。";
+        
+        document.getElementById('modal-view-user').classList.remove('hidden');
+    };
+    document.getElementById('edit-avatar-file').onchange = (e) => {
         const file = e.target.files[0];
-        if(!file) return;
+        if (!file) return;
         const reader = new FileReader();
-        reader.onload = (event) => {
+        reader.onload = (ev) => {
             const img = new Image();
             img.onload = () => {
-                const canvas = document.createElement('canvas');
-                let w = img.width, h = img.height, max = 600;
-                if(w > h) { if(w > max) { h *= max/w; w = max; } }
-                else { if(h > max) { w *= max/h; h = max; } }
-                canvas.width = w; canvas.height = h;
-                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-                sendMsg(canvas.toDataURL('image/jpeg', 0.7), 'image');
+                const cvs = document.createElement('canvas');
+                cvs.width = 150; // 頭像不需要太大
+                cvs.height = (150 / img.width) * img.height;
+                cvs.getContext('2d').drawImage(img, 0, 0, cvs.width, cvs.height);
+                const dataUrl = cvs.toDataURL('image/jpeg', 0.8);
+                // 更新預覽圖
+                document.getElementById('edit-avatar-preview').innerHTML = `<img src="${dataUrl}">`;
+                // 將資料暫存於元素屬性中
+                document.getElementById('edit-avatar-preview').dataset.newAvatar = dataUrl;
             };
-            img.src = event.target.result;
+            img.src = ev.target.result;
         };
         reader.readAsDataURL(file);
     };
+
+    // 4. 修改後的儲存資料邏輯
+    document.getElementById('confirm-edit-profile').onclick = async () => {
+        const newAvatar = document.getElementById('edit-avatar-preview').dataset.newAvatar;
+        const newData = {
+            displayName: document.getElementById('edit-display-name').value.trim(),
+            statusMessage: document.getElementById('edit-status-message').value.trim()
+        };
+        
+        // 如果有上傳新圖片，才更新 avatarUrl
+        if (newAvatar) {
+            newData.avatarUrl = newAvatar;
+        }
+
+        await updateDoc(doc(db, "users", auth.currentUser.uid), newData);
+        
+        // 同步本地快取與 UI
+        currentUserData = { ...currentUserData, ...newData };
+        userCache[currentUserData.customId.toLowerCase()] = currentUserData;
+        renderCurrentUserProfile();
+        closeModals();
+        // 清除暫存
+        delete document.getElementById('edit-avatar-preview').dataset.newAvatar;
+    };
+
+    document.getElementById('confirm-add-friend').onclick = async () => {
+        const targetId = document.getElementById('target-friend-id').value.trim().toLowerCase();
+        if(targetId === currentUserData.customId) return alert("不能加自己");
+        const q = await getDocs(query(collection(db, "users"), where("customId", "==", targetId)));
+        if(q.empty) return alert("找不到用戶");
+        const target = q.docs[0].data();
+        await addDoc(collection(db, "rooms"), {
+            name: `${target.displayName} (@${target.customId})`,
+            type: 'private', members: [currentUserData.customId, targetId],
+            memberDetails: { 
+                [currentUserData.customId]: { name: currentUserData.displayName },
+                [targetId]: { name: target.displayName }
+            },
+            lastRead: {}, lastMessageAt: serverTimestamp()
+        });
+        closeModals();
+    };
+
+    document.getElementById('confirm-add-group').onclick = async () => {
+        const name = document.getElementById('target-group-name').value.trim();
+        const members = [currentUserData.customId, ...document.getElementById('target-group-members').value.split(',').map(i=>i.trim().toLowerCase())];
+        const memberDetails = {};
+        members.forEach((id) => {
+            const u = userCache[id];
+            if (u) memberDetails[id] = { name: u.displayName, avatarUrl: u.avatarUrl || '' };
+        });
+        await addDoc(collection(db, "rooms"), { name, type: 'group', members, memberDetails, lastRead: {}, lastMessageAt: serverTimestamp() });
+        closeModals();
+    };
+
+    document.getElementById('send-btn').onclick = () => sendMsg(document.getElementById('msg-input').value);
+    document.getElementById('msg-input').onkeypress = (e) => { if(e.key==='Enter') sendMsg(e.target.value); };
+    document.getElementById('img-input').onchange = (e) => {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const img = new Image();
+            img.onload = () => {
+                const cvs = document.createElement('canvas');
+                cvs.width = 400; cvs.height = (400/img.width)*img.height;
+                cvs.getContext('2d').drawImage(img, 0, 0, cvs.width, cvs.height);
+                sendMsg(cvs.toDataURL('image/jpeg', 0.6), 'image');
+            };
+            img.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+    };
+    // 點擊側邊欄卡片觸發
+    document.getElementById('profile-card').onclick = () => {
+        document.getElementById('edit-display-name').value = currentUserData.displayName || '';
+        document.getElementById('edit-avatar-url').value = currentUserData.avatarUrl || '';
+        document.getElementById('edit-status-message').value = currentUserData.statusMessage || '';
+        document.getElementById('modal-edit-profile').classList.remove('hidden');
+    };
+
+    // 儲存修改
+    document.getElementById('confirm-edit-profile').onclick = async () => {
+        const newData = {
+            displayName: document.getElementById('edit-display-name').value.trim(),
+            avatarUrl: document.getElementById('edit-avatar-url').value.trim(),
+            statusMessage: document.getElementById('edit-status-message').value.trim()
+        };
+        // 更新資料庫
+        await updateDoc(doc(db, "users", auth.currentUser.uid), newData);
+        // 更新本地變數與 UI，免去頁面重新整理
+        currentUserData = { ...currentUserData, ...newData };
+        userCache[currentUserData.customId.toLowerCase()] = currentUserData;
+        renderCurrentUserProfile();
+        closeModals();
+    };
+
+    
 </script>
 </body>
 </html>
