@@ -5,6 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NTHU Chatroom Pro</title>
     <style>
+        /* 搜尋框容器 */
+        #search-container {
+            position: relative;
+            margin-left: 15px;
+            flex: 1;
+            max-width: 250px;
+        }
+        #search-input {
+            width: 100%;
+            padding: 6px 12px;
+            border-radius: 15px;
+            border: 1px solid #ddd;
+            outline: none;
+            font-size: 13px;
+        }
+
+        /* 編輯模式指示器 */
+        #edit-indicator {
+            background: #fff9c4;
+            padding: 5px 15px;
+            font-size: 12px;
+            border-bottom: 1px solid #ffe082;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* 「已編輯」的小標籤 */
+        .edited-label {
+            font-size: 10px;
+            color: #aaa;
+            margin-left: 5px;
+        }
       * { box-sizing: border-box; }
       :root { 
           --primary: #0084ff; --bg: #dae0e6; --white: #fff; --text: #1c1e21; --light: #65676b; --danger: #dc3545; --sidebar-bg: #f7f8f9;
@@ -216,6 +248,9 @@
                    <strong id="room-title">請選擇聊天室</strong>
                    <button id="invite-more-btn" class="hidden icon-btn" style="font-size:14px; margin-left:10px;">邀請 +</button>
                 </div>
+                <div id="search-container">
+                    <input type="text" id="search-input" placeholder="搜尋訊息內容...">
+                </div>
                 <div>
                     <span id="my-info" style="font-size:12px; color:var(--light);"></span>
                     <a id="logout-btn" style="color:var(--danger); cursor:pointer; font-size:13px; margin-left:10px;">登出</a>
@@ -223,6 +258,11 @@
             </header>
             <div id="room-members" class="room-members hidden"></div>
             <div class="chat-messages" id="chat-messages"></div>
+            <div id="edit-indicator" class="hidden">
+                <span>正在編輯訊息...</span>
+                <a id="cancel-edit" style="color:var(--danger); cursor:pointer; font-weight:bold;">取消</a>
+            </div>
+
             <div class="input-area">
                 <label style="font-size:24px; cursor:pointer;">📷<input type="file" id="img-input" accept="image/*" style="display:none;"></label>
                 <input type="text" id="msg-input" placeholder="說點什麼吧..." autocomplete="off">
@@ -260,19 +300,8 @@
         <img id="image-preview" src="" alt="預覽圖片">
     </div>
 </div>
-<div id="modal-edit-profile" class="modal-overlay hidden">
-    <div class="modal-card">
-        <h3>編輯個人資料</h3>
-        <div class="avatar-circle" id="edit-avatar-preview" style="width:70px; height:70px; margin: 0 auto 10px;">?</div>
-        <input type="text" id="edit-avatar-url" placeholder="頭像圖片網址">
-        <input type="text" id="edit-display-name" placeholder="顯示暱稱">
-        <input type="text" id="edit-status-message" placeholder="狀態消息">
-        <div class="modal-btns">
-            <button class="btn" style="flex:1; background:#eee;" onclick="closeModals()">取消</button>
-            <button class="btn btn-p" style="flex:1;" id="confirm-edit-profile">儲存</button>
-        </div>
-    </div>
-</div>
+
+<!-- 查看他人資料彈窗 -->
 <!-- 查看他人資料彈窗 -->
 <div id="modal-view-user" class="modal-overlay hidden" onclick="closeModals()">
     <div class="modal-card" onclick="event.stopPropagation()">
@@ -280,24 +309,37 @@
         <div class="avatar-circle" id="view-user-avatar" style="width:100px; height:100px; margin: 0 auto 15px; font-size: 40px;">?</div>
         <h2 id="view-user-name" style="margin: 5px 0;">-</h2>
         <div id="view-user-id" style="color: var(--primary); margin-bottom: 15px;">@-</div>
-        <hr style="border: 0; border-top: 1px solid #eee;">
-        <p id="view-user-status" style="color: var(--light); padding: 10px;"></p>
-        <button class="btn btn-p" onclick="closeModals()">關閉</button>
+        
+        <!-- 新增：詳細資訊顯示區 -->
+        <div style="text-align:left; font-size:14px; color:#555; background:#f9f9f9; padding:15px; border-radius:10px; line-height: 1.6;">
+            <p><b>狀態：</b><span id="view-user-status"></span></p>
+            <p><b>電話：</b><span id="view-user-phone"></span></p>
+            <p><b>地址：</b><span id="view-user-address"></span></p>
+        </div>
+
+        <button class="btn btn-p" style="margin-top: 15px;" onclick="closeModals()">關閉</button>
     </div>
 </div>
 
 <!-- 修改後的編輯彈窗 (改為上傳檔案) -->
+<!-- 唯一的個人資料編輯彈窗 (含電話、地址、檔案上傳) -->
 <div id="modal-edit-profile" class="modal-overlay hidden">
     <div class="modal-card">
         <h3>編輯個人資料</h3>
-        <div class="avatar-circle" id="edit-avatar-preview" style="width:70px; height:70px; margin: 0 auto 10px;">?</div>
-        <!-- 修改處：將輸入框改為檔案上傳 -->
-        <label class="btn" style="background: #f0f2f5; margin-bottom: 10px; display: block;">
-            📷 更換頭像圖片
+        <!-- 預覽頭像 -->
+        <div class="avatar-circle" id="edit-avatar-preview" style="width:80px; height:80px; margin: 0 auto 10px; font-size:30px;">?</div>
+        
+        <!-- 檔案上傳按鈕 -->
+        <label class="btn" style="background: #f0f2f5; margin-bottom: 10px; display: block; font-size:12px; cursor:pointer;">
+            📷 點擊上傳新頭像
             <input type="file" id="edit-avatar-file" accept="image/*" style="display:none;">
         </label>
+
         <input type="text" id="edit-display-name" placeholder="顯示暱稱">
         <input type="text" id="edit-status-message" placeholder="狀態消息">
+        <input type="tel" id="edit-phone" placeholder="電話號碼">
+        <input type="text" id="edit-address" placeholder="地址">
+        
         <div class="modal-btns">
             <button class="btn" style="flex:1; background:#eee;" onclick="closeModals()">取消</button>
             <button class="btn btn-p" style="flex:1;" id="confirm-edit-profile">儲存</button>
@@ -333,6 +375,7 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
+    let editingMsgId = null; // 用來記錄目前正在編輯哪一則訊息
     let currentUserData = null;
     let activeRoomId = null;
     let activeRoomData = null;
@@ -609,26 +652,32 @@
                 const row = document.createElement('div');
                 row.className = `msg-row ${isMine ? 'mine' : 'others'}`;
 
-                // --- 修改 B 點：加入發送者資料與頭像 HTML ---
                 const sender = userCache[m.senderId.toLowerCase()] || { displayName: m.senderId };
                 const avatarHTML = `<div class="avatar-circle" onclick="viewUserProfile('${m.senderId}')">${getAvatarHTML(sender, m.senderId)}</div>`;
                 
                 let contentHTML = "";
                 if (m.isUnsent) {
-                    // 已收回訊息的樣式
                     contentHTML = `
                         ${avatarHTML}
                         <div class="msg-content-wrapper">
                             <div class="unsent-text">${escapeHTML(sender.displayName || m.senderId)} 已收回訊息</div>
                         </div>`;
                 } else {
+                    // --- 修改重點：處理已編輯標籤 ---
+                    const editedTag = m.isEdited ? `<span class="edited-label">(已編輯)</span>` : "";
+                    
                     const body = m.type === 'image'
                         ? `<img src="${m.content}" class="msg-img zoomable-img" data-src="${m.content}" alt="訊息圖片">`
-                        : `<div class="bubble">${escapeHTML(m.content)}</div>`;
+                        : `<div class="bubble">${escapeHTML(m.content)}${editedTag}</div>`;
                     
-                    const ops = isMine ? `<div class="msg-ops"><span class="op-btn" onclick="unsendMsg('${docSnap.id}')">收回</span></div>` : "";
+                    // --- 修改重點：加上編輯按鈕 ---
+                    // 只有自己的「文字訊息」且「未收回」才可以編輯
+                    const editBtn = (isMine && m.type === 'text') 
+                        ? `<span class="op-btn" onclick="prepareEdit('${docSnap.id}', '${m.content.replace(/'/g, "\\'")}')">編輯</span>` 
+                        : "";
+                        
+                    const ops = isMine ? `<div class="msg-ops"><span class="op-btn" onclick="unsendMsg('${docSnap.id}')">收回</span>${editBtn}</div>` : "";
                     
-                    // 正常訊息樣式：加入內容包裹器 (msg-content-wrapper)
                     contentHTML = `
                         ${avatarHTML}
                         <div class="msg-content-wrapper">
@@ -648,17 +697,45 @@
         });
     }
 
+    window.prepareEdit = (msgId, content) => {
+        editingMsgId = msgId;
+        document.getElementById('msg-input').value = content;
+        document.getElementById('edit-indicator').classList.remove('hidden');
+        document.getElementById('msg-input').focus();
+    };
+
+    // 2. 取消編輯
+    document.getElementById('cancel-edit').onclick = () => {
+        editingMsgId = null;
+        document.getElementById('msg-input').value = "";
+        document.getElementById('edit-indicator').classList.add('hidden');
+    };
+    // 3. 修改你的 sendMsg 函式，支援「更新」邏輯
     async function sendMsg(content, type = 'text') {
-        if(!activeRoomId || !content) return;
-        await addDoc(collection(db, "messages"), {
-            roomId: activeRoomId, uid: auth.currentUser.uid, senderName: currentUserData.displayName,
-            senderId: currentUserData.customId, content, type, ts: serverTimestamp(), isUnsent: false
-        });
-        // 自己發送訊息時，也同步更新自己的 lastRead，避免自己看到自己的訊息變成「未讀」
-        await updateDoc(doc(db, "rooms", activeRoomId), { 
-            lastMessageAt: serverTimestamp(),
-            [`lastRead.${currentUserData.customId}`]: serverTimestamp()
-        });
+        if(!activeRoomId || !content.trim()) return;
+
+        if (editingMsgId) {
+            // --- 編輯模式：更新現有訊息 ---
+            await updateDoc(doc(db, "messages", editingMsgId), {
+                content: content,
+                isEdited: true // 標記為已編輯
+            });
+            // 重設狀態
+            editingMsgId = null;
+            document.getElementById('edit-indicator').classList.add('hidden');
+        } else {
+            // --- 一般模式：新增訊息 ---
+            await addDoc(collection(db, "messages"), {
+                roomId: activeRoomId, 
+                uid: auth.currentUser.uid, 
+                senderId: currentUserData.customId,
+                content: content, 
+                type: type, 
+                ts: serverTimestamp(), 
+                isUnsent: false,
+                isEdited: false
+            });
+        }
         document.getElementById('msg-input').value = "";
     }
 
@@ -682,58 +759,86 @@
         const nameEl = document.getElementById('view-user-name');
         const idEl = document.getElementById('view-user-id');
         const statusEl = document.getElementById('view-user-status');
+        const phoneEl = document.getElementById('view-user-phone');     // 新增
+        const addressEl = document.getElementById('view-user-address'); // 新增
         
+        // 填入資料
         avatarEl.innerHTML = getAvatarHTML(user, customId);
         nameEl.textContent = user.displayName || customId;
         idEl.textContent = `@${user.customId}`;
+        
+        // 填入電話、住址、狀態（若無資料則顯示「未公開」）
         statusEl.textContent = user.statusMessage || "這傢伙很懶，什麼都沒留下。";
+        phoneEl.textContent = user.phone || "未公開";
+        addressEl.textContent = user.address || "未公開";
         
         document.getElementById('modal-view-user').classList.remove('hidden');
     };
-    document.getElementById('edit-avatar-file').onchange = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
+
+    // 1. 圖片壓縮處理函式 (讓頭像可以像照片一樣上傳)
+    function processAvatar(file) {
         const reader = new FileReader();
-        reader.onload = (ev) => {
+        reader.onload = (e) => {
             const img = new Image();
             img.onload = () => {
                 const cvs = document.createElement('canvas');
-                cvs.width = 150; // 頭像不需要太大
-                cvs.height = (150 / img.width) * img.height;
+                const size = 150; // 頭像壓縮至 150px 確保不超過 Firebase 限制
+                cvs.width = size;
+                cvs.height = (size / img.width) * img.height;
                 cvs.getContext('2d').drawImage(img, 0, 0, cvs.width, cvs.height);
-                const dataUrl = cvs.toDataURL('image/jpeg', 0.8);
-                // 更新預覽圖
+                const dataUrl = cvs.toDataURL('image/jpeg', 0.7);
+                // 更新預覽
                 document.getElementById('edit-avatar-preview').innerHTML = `<img src="${dataUrl}">`;
-                // 將資料暫存於元素屬性中
                 document.getElementById('edit-avatar-preview').dataset.newAvatar = dataUrl;
             };
-            img.src = ev.target.result;
+            img.src = e.target.result;
         };
         reader.readAsDataURL(file);
+    }
+
+    // 2. 監聽檔案選擇
+    document.getElementById('edit-avatar-file').onchange = (e) => {
+        if(e.target.files[0]) processAvatar(e.target.files[0]);
     };
 
-    // 4. 修改後的儲存資料邏輯
+    // 3. 點擊側邊欄自己的卡片 (開啟主頁/編輯)
+    document.getElementById('profile-card').onclick = () => {
+        // 將現有資料帶入輸入框
+        document.getElementById('edit-display-name').value = currentUserData.displayName || '';
+        document.getElementById('edit-status-message').value = currentUserData.statusMessage || '';
+        document.getElementById('edit-phone').value = currentUserData.phone || '';
+        document.getElementById('edit-address').value = currentUserData.address || '';
+        document.getElementById('edit-avatar-preview').innerHTML = getAvatarHTML(currentUserData, currentUserData.customId);
+        
+        document.getElementById('modal-edit-profile').classList.remove('hidden');
+    };
+
+    // 4. 儲存編輯後的資料
     document.getElementById('confirm-edit-profile').onclick = async () => {
         const newAvatar = document.getElementById('edit-avatar-preview').dataset.newAvatar;
         const newData = {
             displayName: document.getElementById('edit-display-name').value.trim(),
-            statusMessage: document.getElementById('edit-status-message').value.trim()
+            statusMessage: document.getElementById('edit-status-message').value.trim(),
+            phone: document.getElementById('edit-phone').value.trim(),
+            address: document.getElementById('edit-address').value.trim()
         };
         
-        // 如果有上傳新圖片，才更新 avatarUrl
-        if (newAvatar) {
-            newData.avatarUrl = newAvatar;
-        }
+        // 若有新圖片才加入更新
+        if (newAvatar) newData.avatarUrl = newAvatar;
 
-        await updateDoc(doc(db, "users", auth.currentUser.uid), newData);
-        
-        // 同步本地快取與 UI
-        currentUserData = { ...currentUserData, ...newData };
-        userCache[currentUserData.customId.toLowerCase()] = currentUserData;
-        renderCurrentUserProfile();
-        closeModals();
-        // 清除暫存
-        delete document.getElementById('edit-avatar-preview').dataset.newAvatar;
+        try {
+            await updateDoc(doc(db, "users", auth.currentUser.uid), newData);
+            
+            // 更新本地快取與 UI (不重新整理)
+            currentUserData = { ...currentUserData, ...newData };
+            userCache[currentUserData.customId.toLowerCase()] = currentUserData;
+            renderCurrentUserProfile();
+            closeModals();
+            delete document.getElementById('edit-avatar-preview').dataset.newAvatar;
+            alert("資料已更新！");
+        } catch (e) {
+            alert("更新失敗：" + e.message);
+        }
     };
 
     document.getElementById('confirm-add-friend').onclick = async () => {
@@ -802,13 +907,7 @@
         };
         reader.readAsDataURL(file);
     };
-    // 點擊側邊欄卡片觸發
-    document.getElementById('profile-card').onclick = () => {
-        document.getElementById('edit-display-name').value = currentUserData.displayName || '';
-        document.getElementById('edit-avatar-url').value = currentUserData.avatarUrl || '';
-        document.getElementById('edit-status-message').value = currentUserData.statusMessage || '';
-        document.getElementById('modal-edit-profile').classList.remove('hidden');
-    };
+    
 
     // 點擊「邀請 +」按鈕開啟彈窗
     document.getElementById('invite-more-btn').onclick = () => {
@@ -853,6 +952,24 @@
         }
     };
     
+    document.getElementById('search-input').oninput = (e) => {
+        const term = e.target.value.toLowerCase();
+        const allMessages = document.querySelectorAll('.msg-row');
+        
+        allMessages.forEach(row => {
+            // 抓取訊息氣泡內的文字
+            const bubble = row.querySelector('.bubble');
+            if (!bubble) return;
+            
+            const text = bubble.innerText.toLowerCase();
+            // 如果包含關鍵字就顯示，不包含就隱藏
+            if (text.includes(term)) {
+                row.style.display = 'flex';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    };
 
     
 </script>
