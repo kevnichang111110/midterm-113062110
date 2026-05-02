@@ -6,20 +6,20 @@
     <title>NTHU Chatroom Pro</title>
     <style>
         /* 搜尋框容器 */
-        #search-container {
+        /* #search-container {
             position: relative;
             margin-left: 15px;
             flex: 1;
             max-width: 250px;
-        }
-        #search-input {
+        } */
+        /* #search-input {
             width: 100%;
             padding: 6px 12px;
             border-radius: 15px;
             border: 1px solid #ddd;
             outline: none;
             font-size: 13px;
-        }
+        } */
 
         /* 編輯模式指示器 */
         #edit-indicator {
@@ -194,6 +194,135 @@
       .msg-row.mine { align-self: flex-end; flex-direction: row-reverse; } /* 自己的訊息頭像在右邊 */
       .msg-content-wrapper { display: flex; flex-direction: column; }
       .mine .msg-content-wrapper { align-items: flex-end; }
+
+
+      /* --- 手機版 RWD 修正 --- */
+        @media (max-width: 768px) {
+            #app { padding: 0; } /* 移除手機邊距 */
+            
+            #chat-ui { 
+                height: 100vh; 
+                max-width: 100%; 
+                border-radius: 0; 
+                box-shadow: none; 
+            }
+
+            /* 初始狀態：側邊欄滿版，聊天視窗隱藏 */
+            .sidebar { 
+                width: 100%; 
+                display: flex;
+            }
+            .main-chat { 
+                display: none; 
+                width: 100%;
+            }
+
+            /* 當聊天室啟動時的狀態 (切換 class) */
+            #chat-ui.chat-active .sidebar {
+                display: none;
+            }
+            #chat-ui.chat-active .main-chat {
+                display: flex;
+            }
+
+            /* 調整彈窗寬度 */
+            .modal-card {
+                width: 90%;
+                padding: 20px;
+            }
+
+            /* 隱藏沒必要的標籤減少擁擠感 */
+            #search-container {
+                max-width: 150px;
+            }
+            .profile-card {
+                margin: 10px;
+            }
+        }
+        /* 搜尋高亮效果 */
+        .search-match-active {
+            background-color: #ffeb3b !important; /* 明亮的黃色 */
+            border: 2px solid #fbc02d;
+            box-shadow: 0 0 10px rgba(251, 192, 45, 0.5);
+            transition: all 0.3s ease;
+        }
+        
+
+        #search-nav {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-left: 8px;
+        }
+
+        #search-count {
+            font-size: 12px;
+            color: var(--light);
+            min-width: 35px;
+            text-align: center;
+        }
+
+        /* 搜尋容器：改為相對定位，但不影響內部 flex 排版 */
+        #search-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            max-width: 320px; /* 寬度適中 */
+            margin-left: 10px;
+        }
+        .search-input-wrapper {
+            position: relative;
+            flex: 1;
+        }
+        /* 搜尋輸入框的包裹層 */
+        .search-box-wrapper {
+            position: relative;
+            flex: 1;
+        }
+
+        #search-input {
+            width: 100%;
+            padding: 6px 30px 6px 12px; /* 右側留 30px 給 X 按鈕 */
+            border-radius: 15px;
+            border: 1px solid #ddd;
+            outline: none;
+            font-size: 13px;
+        }
+
+        /* 清除按鈕：定位在輸入框的內部右側 */
+        #clear-search-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #ccc;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 12px;
+            cursor: pointer;
+            display: none; /* 透過 JS 控制顯示 */
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            z-index: 5;
+        }
+
+        #clear-search-btn:hover {
+            background: var(--danger);
+        }
+
+        /* 導航按鈕：自然排在輸入框後方，不再使用絕對定位 */
+        #search-nav {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
     </style>
 </head>
 <body>
@@ -244,16 +373,33 @@
 
         <main class="main-chat">
             <header class="chat-header">
-                <div>
-                   <strong id="room-title">請選擇聊天室</strong>
-                   <button id="invite-more-btn" class="hidden icon-btn" style="font-size:14px; margin-left:10px;">邀請 +</button>
+                <!-- 左側：標題與返回 -->
+                <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:0;">
+                    <button id="mobile-back-btn" class="icon-btn" style="font-size:16px;">⬅️</button>
+                    <strong id="room-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">請選擇聊天室</strong>
+                    <button id="invite-more-btn" class="hidden icon-btn" style="font-size:14px;">邀請 +</button>
                 </div>
+
+                <!-- 中間：搜尋功能 -->
+                <!-- 中間：搜尋功能 -->
                 <div id="search-container">
-                    <input type="text" id="search-input" placeholder="搜尋訊息內容...">
+                    <!-- 新增一層 wrapper 包住輸入框與 X -->
+                    <div class="search-input-wrapper">
+                        <input type="text" id="search-input" placeholder="搜尋訊息內容...">
+                        <button id="clear-search-btn" title="清除搜尋">×</button>
+                    </div>
+                    
+                    <!-- 導航按鈕會跟在 wrapper 後面，不會重疊 -->
+                    <div id="search-nav" class="hidden">
+                        <span id="search-count">0/0</span>
+                        <button id="search-prev" class="op-btn" style="padding: 2px 8px;">↑</button>
+                        <button id="search-next" class="op-btn" style="padding: 2px 8px;">↓</button>
+                    </div>
                 </div>
-                <div>
-                    <span id="my-info" style="font-size:12px; color:var(--light);"></span>
-                    <a id="logout-btn" style="color:var(--danger); cursor:pointer; font-size:13px; margin-left:10px;">登出</a>
+
+                <!-- 右側：登出 -->
+                <div style="margin-left: 10px;">
+                    <a id="logout-btn" style="color:var(--danger); cursor:pointer; font-size:13px;">登出</a>
                 </div>
             </header>
             <div id="room-members" class="room-members hidden"></div>
@@ -375,6 +521,8 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
+    let searchMatches = []; // 儲存搜尋到的 DOM 元素
+    let currentSearchIndex = -1; // 目前跳轉到的索引
     let editingMsgId = null; // 用來記錄目前正在編輯哪一則訊息
     let currentUserData = null;
     let activeRoomId = null;
@@ -618,6 +766,8 @@
         activeRoomData = roomData;
         document.getElementById('room-title').innerText = title;
         document.getElementById('invite-more-btn').classList.toggle('hidden', roomData.type !== 'group');
+
+        document.getElementById('chat-ui').classList.add('chat-active');
         renderGroupMembers(roomData);
         const lastReadTs = roomData.lastRead?.[currentUserData.customId];
         await updateDoc(doc(db, "rooms", roomId), { [`lastRead.${currentUserData.customId}`]: serverTimestamp() });
@@ -637,9 +787,10 @@
 
             snap.forEach(docSnap => {
                 const m = docSnap.data();
-                if (m.deletedBy?.includes(currentUserData.customId)) return;
 
-                // 未讀分隔線
+                // --- 修改 A：如果這則訊息的 deletedBy 包含我，就跳過不顯示 ---
+                if (m.deletedBy && m.deletedBy.includes(currentUserData.customId)) return;
+
                 if (!dividerInjected && lastReadTs && m.ts && m.ts.toMillis() > lastReadTs.toMillis() && m.uid !== auth.currentUser.uid) {
                     const hr = document.createElement('div');
                     hr.className = "unread-divider";
@@ -663,20 +814,25 @@
                             <div class="unsent-text">${escapeHTML(sender.displayName || m.senderId)} 已收回訊息</div>
                         </div>`;
                 } else {
-                    // --- 修改重點：處理已編輯標籤 ---
                     const editedTag = m.isEdited ? `<span class="edited-label">(已編輯)</span>` : "";
-                    
                     const body = m.type === 'image'
                         ? `<img src="${m.content}" class="msg-img zoomable-img" data-src="${m.content}" alt="訊息圖片">`
                         : `<div class="bubble">${escapeHTML(m.content)}${editedTag}</div>`;
                     
-                    // --- 修改重點：加上編輯按鈕 ---
-                    // 只有自己的「文字訊息」且「未收回」才可以編輯
+                    // --- 修改 B：正確組合按鈕 ---
+                    // 所有人都可以看到「刪除」(對自己隱藏)
+                    const deleteBtn = `<span class="op-btn" onclick="deleteMsg('${docSnap.id}')">刪除</span>`;
+                    
+                    // 只有自己的訊息可以看到「收回」
+                    const unsendBtn = isMine ? `<span class="op-btn" onclick="unsendMsg('${docSnap.id}')">收回</span>` : "";
+                    
+                    // 只有自己的文字訊息可以看到「編輯」
                     const editBtn = (isMine && m.type === 'text') 
                         ? `<span class="op-btn" onclick="prepareEdit('${docSnap.id}', '${m.content.replace(/'/g, "\\'")}')">編輯</span>` 
                         : "";
-                        
-                    const ops = isMine ? `<div class="msg-ops"><span class="op-btn" onclick="unsendMsg('${docSnap.id}')">收回</span>${editBtn}</div>` : "";
+                    
+                    // 把所有按鈕組合進 ops
+                    const ops = `<div class="msg-ops">${deleteBtn}${unsendBtn}${editBtn}</div>`;
                     
                     contentHTML = `
                         ${avatarHTML}
@@ -733,7 +889,8 @@
                 type: type, 
                 ts: serverTimestamp(), 
                 isUnsent: false,
-                isEdited: false
+                isEdited: false,
+                deletedBy: []
             });
         }
         document.getElementById('msg-input').value = "";
@@ -952,26 +1109,103 @@
         }
     };
     
+    // 執行搜尋跳轉
+    function jumpToMatch(index) {
+        if (searchMatches.length === 0) return;
+
+        // 移除之前的高亮
+        searchMatches.forEach(el => el.classList.remove('search-match-active'));
+
+        // 更新索引 (循環跳轉)
+        if (index >= searchMatches.length) index = 0;
+        if (index < 0) index = searchMatches.length - 1;
+        currentSearchIndex = index;
+
+        // 取得目標訊息並高亮
+        const target = searchMatches[currentSearchIndex];
+        target.classList.add('search-match-active');
+
+        // 平滑捲動到該訊息位置
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        // 更新計數顯示
+        document.getElementById('search-count').innerText = `${currentSearchIndex + 1}/${searchMatches.length}`;
+    }
+
+    function clearSearch() {
+        const input = document.getElementById('search-input');
+        const nav = document.getElementById('search-nav');
+        const clearBtn = document.getElementById('clear-search-btn');
+
+        input.value = "";
+        searchMatches = [];
+        currentSearchIndex = -1;
+        
+        nav.classList.add('hidden');
+        clearBtn.style.display = 'none';
+
+        // 恢復所有訊息的透明度與移除高亮
+        document.querySelectorAll('.msg-row').forEach(row => {
+            row.style.opacity = "1";
+            row.classList.remove('search-match-active');
+        });
+    }
+
+    // 點擊清除按鈕執行清除
+    document.getElementById('clear-search-btn').onclick = clearSearch;
+    // 搜尋輸入監聽
     document.getElementById('search-input').oninput = (e) => {
         const term = e.target.value.toLowerCase();
+        const nav = document.getElementById('search-nav');
+        const clearBtn = document.getElementById('clear-search-btn'); // 新增
+        searchMatches = [];
+        currentSearchIndex = -1;
+
+        if (!term) {
+            clearSearch();
+            return;
+        }
+
+        clearBtn.style.display = 'flex';
+
+        nav.classList.remove('hidden');
         const allMessages = document.querySelectorAll('.msg-row');
-        
+
         allMessages.forEach(row => {
-            // 抓取訊息氣泡內的文字
             const bubble = row.querySelector('.bubble');
-            if (!bubble) return;
-            
-            const text = bubble.innerText.toLowerCase();
-            // 如果包含關鍵字就顯示，不包含就隱藏
-            if (text.includes(term)) {
-                row.style.display = 'flex';
+            if (bubble && bubble.innerText.toLowerCase().includes(term)) {
+                row.style.opacity = "1";
+                searchMatches.push(row); // 加入匹配清單
             } else {
-                row.style.display = 'none';
+                row.style.opacity = "0.3";
+                row.classList.remove('search-match-active');
             }
         });
+
+        if (searchMatches.length > 0) {
+            jumpToMatch(0); // 自動跳轉到第一個結果
+        } else {
+            document.getElementById('search-count').innerText = "0/0";
+        }
     };
 
-    
+    // 綁定上下按鈕
+    document.getElementById('search-prev').onclick = () => jumpToMatch(currentSearchIndex - 1);
+    document.getElementById('search-next').onclick = () => jumpToMatch(currentSearchIndex + 1);
+    // 手機版返回按鈕：移除 chat-active 類別，顯示房間清單
+    document.getElementById('mobile-back-btn').onclick = () => {
+        document.getElementById('chat-ui').classList.remove('chat-active');
+    };
+
+    window.deleteMsg = async (msgId) => {
+        if(confirm("要為自己刪除這則訊息嗎？(其他人仍看得到)")) {
+            await updateDoc(doc(db, "messages", msgId), {
+                deletedBy: arrayUnion(currentUserData.customId)
+            });
+            // Firestore 的 onSnapshot 會自動偵測到更新並重新渲染 loadMessages，
+            // 屆時因為訊息包含了你的 customId，就會被過濾掉。
+        }
+    };
 </script>
 </body>
 </html>
