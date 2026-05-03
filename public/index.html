@@ -777,15 +777,52 @@
 
     let unreadCount = 0;
 
+    // 1) 新增：全域訊息監聽，用來做「即時通知」
+    let unsubGlobalMessages = null;
+
+    function startGlobalMessageListener() {
+        if (unsubGlobalMessages) unsubGlobalMessages();
+
+        const q = query(collection(db, "messages"), orderBy("ts", "asc"));
+        let firstSnapshot = true;
+
+        unsubGlobalMessages = onSnapshot(q, (snap) => {
+            // 忽略第一次載入的歷史資料，避免歷史訊息全跳通知
+            if (firstSnapshot) {
+                firstSnapshot = false;
+                return;
+            }
+
+            snap.docChanges().forEach((change) => {
+                if (change.type !== "added") return;
+
+                const m = change.doc.data();
+                if (!m.ts) return;
+                if (m.uid === auth.currentUser.uid) return;
+
+                // 只在「不是目前正在看的聊天室」時通知
+                // 若你想連目前聊天室也通知，可把這行拿掉
+                if (!document.hidden && m.roomId === activeRoomId) return;
+
+                const sender = userCache[m.senderId?.toLowerCase()] || { displayName: m.senderId };
+                const notifyText = m.type === "image" ? "傳了一張圖片" : String(m.content || "");
+                showNotification(sender.displayName || m.senderId, notifyText);
+            });
+        });
+    }
     if (Notification.permission !== "granted") {
         Notification.requestPermission();
     }
 
-    function showNotification(text) {
-        if (Notification.permission === "granted") {
-            new Notification("新訊息", { body: text });
-        }
+    function showNotification(senderName, text) {
+    if (Notification.permission === "granted") {
+        const options = {
+            body: text,
+            icon: "https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" // 可換成你的 App Logo
+        };
+        new Notification(`來自 ${senderName} 的新訊息`, options);
     }
+}
     const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '🎉', '😢'];
 
     const jsEscape = (str = '') => String(str)
@@ -1081,6 +1118,16 @@
                 currentUserData = userDoc.data();
                 await refreshUserCache();
 
+                renderCurrentUserProfile();
+                loadRooms();
+                startGlobalMessageListener();
+                // await addDoc(collection(db, "messages"), payload);
+
+                // await updateDoc(doc(db, "rooms", activeRoomId), {
+                //     lastMessageAt: serverTimestamp(),
+                //     lastMessageBy: currentUserData.customId
+                // });
+                
                 document.getElementById('auth-section').classList.add('hidden');
                 document.getElementById('chat-ui').classList.remove('hidden');
 
@@ -1097,8 +1144,15 @@
     });
 
     document.getElementById('login-btn').onclick = async () => {
-        try { await signInWithEmailAndPassword(auth, email.value, password.value); } 
-        catch (e) { document.getElementById('auth-error').innerText = "登入失敗"; }
+        // 主動請求通知權限
+        if (Notification.permission !== "granted") {
+            Notification.requestPermission();
+        }
+        try { 
+            await signInWithEmailAndPassword(auth, email.value, password.value); 
+        } catch(e) { 
+            document.getElementById('auth-error').innerText = "登入失敗"; 
+        }
     };
     document.getElementById('signup-btn').onclick = async () => {
         try { await createUserWithEmailAndPassword(auth, email.value, password.value); } 
@@ -1158,6 +1212,16 @@
         return blockedByMe || blockedMe;
     }
 
+    async function isBlockedByTarget(otherId) {
+        const q = query(collection(db, "users"), where("customId", "==", otherId));
+        const snap = await getDocs(q);
+        if (snap.empty) return false;
+
+        const target = snap.docs[0].data();
+        const me = String(currentUserData?.customId || "").toLowerCase();
+        return Array.isArray(target.blockedUsers) &&
+            target.blockedUsers.map(x => String(x).toLowerCase()).includes(me);
+    }
     async function loadRooms() {
         if (!currentUserData) return;
         if (unsubRooms) unsubRooms();
@@ -1260,6 +1324,26 @@
         };
 
         unsubMessages = onSnapshot(q, (snap) => {
+            // --- 【新增：精準通知邏輯】 ---
+            // 只針對「新增(added)」的動態進行判斷，避免歷史訊息轟炸
+            snap.docChanges().forEach(change => {
+                if (change.type === "added") {
+                    const m = change.doc.data();
+                    // 判斷條件：
+                    // 1. 不是自己發的
+                    // 2. 視窗隱藏中 (document.hidden)
+                    // 3. 訊息時間戳記在 10 秒內 (確保是剛發生的，不是載入歷史紀錄)
+                    const isFresh = m.ts && (Date.now() - m.ts.toMillis() < 10000);
+                    
+                    // if (m.uid !== auth.currentUser.uid && document.hidden && isFresh) {
+                    //     const sender = userCache[m.senderId?.toLowerCase()] || { displayName: m.senderId };
+                    //     const notifyText = m.type === 'image' ? '傳了一張圖片' : String(m.content || '');
+                    //     showNotification(sender.displayName || m.senderId, notifyText);
+                    // }
+                }
+            });
+
+            // --- 【原本的 UI 渲染邏輯】 ---
             const container = document.getElementById('chat-messages');
             container.innerHTML = "";
             dividerInjected = false;
@@ -1291,7 +1375,6 @@
                 const sender = userCache[senderKey] || { displayName: senderId, customId: senderId };
                 const senderName = sender.displayName || senderId;
 
-                // 改成 data-id，避免 inline onclick
                 const avatarHTML = `
                     <div class="avatar-circle user-avatar" data-id="${escapeHTML(senderId)}">
                         ${getAvatarHTML(sender, senderId)}
@@ -1336,25 +1419,18 @@
                         </div>`;
                 }
 
-                if (m.uid !== auth.currentUser.uid && document.hidden) {
-                    const notifyText = `${String(senderName || '未知使用者')}: ${
-                        m.type === 'image' ? '傳了一張圖片' : String(m.content || '')
-                    }`;
-                    showNotification(notifyText);
-                }
-
+                // 【注意】這裡原本舊的通知邏輯已被移除，改到上方的 docChanges 處理
                 row.innerHTML = contentHTML;
                 container.appendChild(row);
             });
 
-            // 點頭像開資料
+            // 綁定事件
             container.querySelectorAll('.user-avatar').forEach((avatar) => {
                 avatar.addEventListener('click', () => {
                     const id = avatar.dataset.id;
                     if (id) viewUserProfile(id);
                 });
             });
-
             container.querySelectorAll('.zoomable-img').forEach((img) => {
                 img.onclick = () => openImagePreview(img.dataset.src || img.src);
             });
@@ -1448,7 +1524,23 @@
                     content: replyingMsgData.content
                 };
             }
+            if (activeRoomData?.type === 'private') {
+                const otherId = getPrivateChatOtherId(activeRoomData);
+                if (otherId) {
+                    const q = query(collection(db, "users"), where("customId", "==", otherId));
+                    const snap = await getDocs(q);
+                    const target = snap.docs[0]?.data();
+                    const me = String(currentUserData?.customId || '').toLowerCase();
 
+                    const blockedByTarget = Array.isArray(target?.blockedUsers) &&
+                        target.blockedUsers.map(x => String(x).toLowerCase()).includes(me);
+
+                    if (blockedByTarget) {
+                        updateComposerByAccess(activeRoomData);
+                        return alert("你已被對方封鎖，無法傳送訊息");
+                    }
+                }
+            }
             await addDoc(collection(db, "messages"), payload);
         }
 
