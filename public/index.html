@@ -511,8 +511,7 @@
         <div class="auth-card hidden" id="profile-form">
             <h2>個人資料設定</h2>
             <input type="text" id="display-name" placeholder="您的暱稱">
-            <input type="text" id="custom-id" placeholder="唯一 ID (例如: kev123)">
-            <input type="text" id="avatar-url" placeholder="頭像圖片網址（可留空）">
+            <input type="text" id="custom-id" placeholder="唯一 ID (例如: qw123)">
             <input type="text" id="status-message" placeholder="狀態消息（例如：忙碌中）">
             <button id="save-profile-btn" class="btn btn-p">完成</button>
         </div>
@@ -979,7 +978,12 @@
     window.closeModals = () => document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden'));
     document.getElementById('add-friend-trigger').onclick = () => document.getElementById('modal-friend').classList.remove('hidden');
     document.getElementById('add-group-trigger').onclick = () => document.getElementById('modal-group').classList.remove('hidden');
-    document.getElementById('logout-btn').onclick = () => { if(unsubRooms) unsubRooms(); if(unsubMessages) unsubMessages(); signOut(auth); };
+    document.getElementById('logout-btn').onclick = () => {
+        if (unsubRooms) unsubRooms();
+        if (unsubMessages) unsubMessages();
+        resetChatUI();
+        signOut(auth);
+    };
     document.getElementById('image-preview-modal').onclick = (e) => {
         if (e.target.id === 'image-preview-modal') closeImagePreview();
     };
@@ -1000,24 +1004,26 @@
     });
 
     onAuthStateChanged(auth, async (user) => {
+        resetChatUI();
+
         if (user) {
             const userDoc = await getDoc(doc(db, "users", user.uid));
             if (userDoc.exists()) {
-                currentUserData = { ...userDoc.data(), blockedUsers: userDoc.data().blockedUsers || [] };
+                currentUserData = userDoc.data();
                 await refreshUserCache();
+
                 document.getElementById('auth-section').classList.add('hidden');
                 document.getElementById('chat-ui').classList.remove('hidden');
+
                 renderCurrentUserProfile();
                 loadRooms();
             } else {
-                document.getElementById('auth-section').classList.remove('hidden');
                 document.getElementById('login-form').classList.add('hidden');
                 document.getElementById('profile-form').classList.remove('hidden');
             }
         } else {
-            document.getElementById('auth-section').classList.remove('hidden');
-            document.getElementById('chat-ui').classList.add('hidden');
             document.getElementById('login-form').classList.remove('hidden');
+            document.getElementById('profile-form').classList.add('hidden');
         }
     });
 
@@ -1032,17 +1038,35 @@
     document.getElementById('save-profile-btn').onclick = async () => {
         const name = document.getElementById('display-name').value.trim();
         const cid = document.getElementById('custom-id').value.trim().toLowerCase();
-        const avatarUrl = document.getElementById('avatar-url').value.trim();
         const statusMessage = document.getElementById('status-message').value.trim();
-        if(!name || !cid) return;
+
+        if (!name || !cid) {
+            return alert("暱稱和 ID 不可空白");
+        }
+
+        // 🔴 檢查 ID 是否已存在
+        const q = query(collection(db, "users"), where("customId", "==", cid));
+        const snap = await getDocs(q);
+
+        // 如果有資料，而且不是自己（避免自己改資料被擋）
+        if (!snap.empty) {
+            const existing = snap.docs[0];
+
+            if (existing.id !== auth.currentUser.uid) {
+                return alert("這個 ID 已經被使用了！");
+            }
+        }
+
+        // ✅ 寫入資料
         await setDoc(doc(db, "users", auth.currentUser.uid), {
             displayName: name,
             customId: cid,
             email: auth.currentUser.email,
-            avatarUrl,
             statusMessage,
             blockedUsers: []
         }, { merge: true });
+
+        alert("註冊成功！");
         location.reload();
     };
 
@@ -1064,7 +1088,7 @@
         const blockedMe = doesUserBlockMe(senderId);
         return blockedByMe || blockedMe;
     }
-    
+
     async function loadRooms() {
         if (!currentUserData) return;
         if (unsubRooms) unsubRooms();
@@ -1130,6 +1154,30 @@
         await updateDoc(doc(db, "rooms", roomId), { [`lastRead.${currentUserData.customId}`]: serverTimestamp() });
         loadMessages(roomId, roomData, lastReadTs);
         loadRooms();
+    }
+
+    function resetChatUI() {
+        activeRoomId = null;
+        activeRoomData = null;
+        editingMsgId = null;
+        searchMatches = [];
+        currentSearchIndex = -1;
+
+        const chatUI = document.getElementById('chat-ui');
+        const authSection = document.getElementById('auth-section');
+
+        document.getElementById('room-title').innerText = '請選擇聊天室';
+        document.getElementById('room-list').innerHTML = '';
+        document.getElementById('chat-messages').innerHTML = '';
+        document.getElementById('room-members').innerHTML = '';
+        document.getElementById('room-members').classList.add('hidden');
+        document.getElementById('edit-indicator').classList.add('hidden');
+        document.getElementById('search-input').value = '';
+        document.getElementById('search-nav').classList.add('hidden');
+        document.getElementById('clear-search-btn').style.display = 'none';
+
+        if (chatUI) chatUI.classList.add('hidden');
+        if (authSection) authSection.classList.remove('hidden');
     }
 
     function loadMessages(roomId, roomData, lastReadTs) {
