@@ -5,6 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NTHU Chatroom Pro</title>
     <style>
+        .msg-row {
+            animation: fadeInUp 0.25s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
         /* 搜尋框容器 */
         /* #search-container {
             position: relative;
@@ -494,6 +508,34 @@
       }
       .profile-actions .btn { flex: 1; }
 
+      /* Google 登入按鈕專屬樣式 */
+    .btn-google {
+        background: white !important;
+        color: #444 !important;
+        border: 1px solid #ddd !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 10px;
+        transition: all 0.2s ease;
+        font-weight: 500;
+    }
+
+    .btn-google:hover {
+        background: #f8f9fa !important;
+        border-color: #ccc !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .btn-google:active {
+        background: #eeeeee !important;
+    }
+
+    .google-icon {
+        width: 18px;
+        height: 18px;
+    }
     </style>
 </head>
 <body>
@@ -505,6 +547,10 @@
             <input type="email" id="email" placeholder="Email">
             <input type="password" id="password" placeholder="Password">
             <div id="auth-error" style="color:red; font-size:12px;"></div>
+            <button id="google-login-btn" class="btn btn-google">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="google-icon" alt="Google">
+                使用 Google 帳號登入
+            </button>
             <button id="login-btn" class="btn btn-p">登入</button>
             <button id="signup-btn" class="btn" style="background:#28a745; color:white;">註冊</button>
         </div>
@@ -689,6 +735,18 @@
     import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
     import { getFirestore, collection, addDoc, setDoc, getDoc, doc, query, where, orderBy, onSnapshot, serverTimestamp, getDocs, updateDoc, arrayUnion, arrayRemove, Timestamp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 
+    import { GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
+    const provider = new GoogleAuthProvider();
+
+    document.getElementById("google-login-btn").onclick = async () => {
+        try {
+            const result = await signInWithPopup(auth, provider);
+            alert("Google 登入成功：" + result.user.email);
+        } catch (err) {
+            console.error(err);
+            alert("登入失敗");
+        }
+    };
     const firebaseConfig = {
       apiKey: "AIzaSyCPtBwhqkLZAX3qWkGWKvOcBL5vmSxar-0",
       authDomain: "midterm-chatroom-ebe86.firebaseapp.com",
@@ -717,6 +775,17 @@
     let replyingMsgData = null;
     let pendingReactionMsgId = null;
 
+    let unreadCount = 0;
+
+    if (Notification.permission !== "granted") {
+        Notification.requestPermission();
+    }
+
+    function showNotification(text) {
+        if (Notification.permission === "granted") {
+            new Notification("新訊息", { body: text });
+        }
+    }
     const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '🎉', '😢'];
 
     const jsEscape = (str = '') => String(str)
@@ -1185,6 +1254,11 @@
         const q = query(collection(db, "messages"), where("roomId", "==", roomId), orderBy("ts", "asc"));
         let dividerInjected = false;
 
+        const isSafeImageUrl = (url = '') => {
+            const u = String(url || '').trim().toLowerCase();
+            return u.startsWith('http://') || u.startsWith('https://') || u.startsWith('data:image/');
+        };
+
         unsubMessages = onSnapshot(q, (snap) => {
             const container = document.getElementById('chat-messages');
             container.innerHTML = "";
@@ -1193,6 +1267,9 @@
 
             snap.forEach(docSnap => {
                 const m = docSnap.data();
+                const senderId = String(m.senderId || '');
+                const senderKey = senderId.toLowerCase();
+
                 if (m.deletedBy && m.deletedBy.includes(currentUserData.customId)) return;
                 if (shouldHideMessageForCurrentUser(m)) return;
 
@@ -1211,29 +1288,39 @@
                 row.className = `msg-row ${isMine ? 'mine' : 'others'}`;
                 row.id = `msg-${docSnap.id}`;
 
-                const sender = userCache[m.senderId.toLowerCase()] || { displayName: m.senderId, customId: m.senderId };
-                const senderName = sender.displayName || m.senderId;
-                const avatarHTML = `<div class="avatar-circle" onclick="viewUserProfile('${jsEscape(m.senderId)}')">${getAvatarHTML(sender, m.senderId)}</div>`;
+                const sender = userCache[senderKey] || { displayName: senderId, customId: senderId };
+                const senderName = sender.displayName || senderId;
+
+                // 改成 data-id，避免 inline onclick
+                const avatarHTML = `
+                    <div class="avatar-circle user-avatar" data-id="${escapeHTML(senderId)}">
+                        ${getAvatarHTML(sender, senderId)}
+                    </div>
+                `;
 
                 let contentHTML = "";
                 if (m.isUnsent) {
                     contentHTML = `
                         ${avatarHTML}
                         <div class="msg-content-wrapper">
-                            <div class="unsent-text">${escapeHTML(senderName || m.senderId)} 已收回訊息</div>
+                            <div class="unsent-text">${escapeHTML(senderName || senderId)} 已收回訊息</div>
                         </div>`;
                 } else {
                     const editedTag = m.isEdited ? `<span class="edited-label">(已編輯)</span>` : "";
                     const replyBlock = m.replyTo ? renderReplyBlock(m.replyTo, docSnap.id) : "";
+
+                    const safeContent = String(m.content || '');
                     const body = m.type === 'image'
-                        ? `<img src="${escapeHTML(m.content)}" class="msg-img zoomable-img" data-src="${escapeHTML(m.content)}" alt="訊息圖片">`
-                        : `<div class="bubble">${escapeHTML(m.content)}${editedTag}</div>`;
+                        ? (isSafeImageUrl(safeContent)
+                            ? `<img src="${escapeHTML(safeContent)}" class="msg-img zoomable-img" data-src="${escapeHTML(safeContent)}" alt="訊息圖片">`
+                            : `<div class="bubble">[不安全的圖片連結]</div>`)
+                        : `<div class="bubble">${escapeHTML(safeContent)}${editedTag}</div>`;
 
                     const reactionRow = renderReactionRow(docSnap.id, m.reactions || {});
                     const deleteBtn = `<span class="op-btn" onclick="deleteMsg('${docSnap.id}')">刪除</span>`;
                     const unsendBtn = isMine ? `<span class="op-btn" onclick="unsendMsg('${docSnap.id}')">收回</span>` : "";
                     const editBtn = (isMine && m.type === 'text')
-                        ? `<span class="op-btn" onclick="prepareEdit('${docSnap.id}', '${jsEscape(m.content)}')">編輯</span>`
+                        ? `<span class="op-btn" onclick="prepareEdit('${docSnap.id}', '${jsEscape(safeContent)}')">編輯</span>`
                         : "";
                     const replyBtn = `<span class="op-btn" onclick="prepareReply('${docSnap.id}')">回覆</span>`;
                     const reactBtn = `<span class="op-btn" onclick="openReactionMenu('${docSnap.id}')">😊</span>`;
@@ -1242,20 +1329,36 @@
                     contentHTML = `
                         ${avatarHTML}
                         <div class="msg-content-wrapper">
-                            <span class="sender">${escapeHTML(senderName)} (@${escapeHTML(m.senderId)})</span>
+                            <span class="sender">${escapeHTML(senderName)} (@${escapeHTML(senderId)})</span>
                             ${replyBlock}
                             <div class="bubble-container">${body}${ops}</div>
                             ${reactionRow}
                         </div>`;
                 }
 
+                if (m.uid !== auth.currentUser.uid && document.hidden) {
+                    const notifyText = `${String(senderName || '未知使用者')}: ${
+                        m.type === 'image' ? '傳了一張圖片' : String(m.content || '')
+                    }`;
+                    showNotification(notifyText);
+                }
+
                 row.innerHTML = contentHTML;
                 container.appendChild(row);
+            });
+
+            // 點頭像開資料
+            container.querySelectorAll('.user-avatar').forEach((avatar) => {
+                avatar.addEventListener('click', () => {
+                    const id = avatar.dataset.id;
+                    if (id) viewUserProfile(id);
+                });
             });
 
             container.querySelectorAll('.zoomable-img').forEach((img) => {
                 img.onclick = () => openImagePreview(img.dataset.src || img.src);
             });
+
             container.scrollTop = container.scrollHeight;
         });
     }
