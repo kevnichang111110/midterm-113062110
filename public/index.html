@@ -197,47 +197,92 @@
 
 
       /* --- 手機版 RWD 修正 --- */
+        /* --- 手機版 RWD 徹底修正 --- */
         @media (max-width: 768px) {
-            #app { padding: 0; } /* 移除手機邊距 */
+            body, html {
+                overflow: hidden; /* 防止整個網頁上下滑動 */
+                position: fixed;
+                width: 100%;
+                height: 100%;
+            }
+
+            #app { padding: 0; }
             
             #chat-ui { 
-                height: 100vh; 
+                height: 100dvh; /* 使用 dvh 單位自動扣除手機瀏覽器工具列 */
                 max-width: 100%; 
                 border-radius: 0; 
-                box-shadow: none; 
             }
 
-            /* 初始狀態：側邊欄滿版，聊天視窗隱藏 */
-            .sidebar { 
-                width: 100%; 
-                display: flex;
-            }
-            .main-chat { 
-                display: none; 
-                width: 100%;
+            /* 手機版 Header 壓縮 */
+            .chat-header {
+                padding: 8px 12px;
+                gap: 5px;
             }
 
-            /* 當聊天室啟動時的狀態 (切換 class) */
-            #chat-ui.chat-active .sidebar {
-                display: none;
+            /* 隱藏邀請文字，只留符號以節省空間 */
+            #invite-more-btn {
+                font-size: 0; 
             }
-            #chat-ui.chat-active .main-chat {
-                display: flex;
-            }
-
-            /* 調整彈窗寬度 */
-            .modal-card {
-                width: 90%;
-                padding: 20px;
+            #invite-more-btn::before {
+                content: "👤+";
+                font-size: 14px;
             }
 
-            /* 隱藏沒必要的標籤減少擁擠感 */
+            /* 搜尋框在手機版縮小 */
             #search-container {
-                max-width: 150px;
+                max-width: 120px;
+                margin-left: 5px;
             }
-            .profile-card {
-                margin: 10px;
+            #search-input {
+                padding: 4px 20px 4px 8px;
+                font-size: 11px;
             }
+            #search-count { font-size: 10px; min-width: 25px; }
+
+            /* 關鍵：成員清單在手機版要限制高度，否則會把對話擠下去 */
+            .room-members {
+                max-height: 80px;
+                overflow-y: auto;
+                padding: 5px 10px;
+            }
+            .member-chip {
+                padding: 2px 8px;
+                font-size: 11px;
+            }
+
+            /* 確保對話區域與輸入框能正確分配空間 */
+            .main-chat {
+                height: 100%;
+                display: none;
+                flex-direction: column;
+            }
+            
+            /* 調整對話訊息區塊，確保它是唯一會伸縮的 */
+            .chat-messages {
+                flex: 1; 
+                min-height: 0; /* 必須加上這行，Flex 內部的滾動才不會壞掉 */
+            }
+
+            /* 輸入框區域優化 */
+            .input-area {
+                padding: 10px 10px calc(10px + env(safe-area-inset-bottom));
+                background: #fff;
+                position: sticky;
+                bottom: 0;
+                z-index: 10;
+            }
+            #msg-input {
+                padding: 8px 15px;
+                font-size: 14px; /* 防止 iOS 輸入時自動放大畫面 */
+            }
+            #chat-warning {
+                margin: 8px 10px 0;
+                font-size: 12px;
+            }
+
+            #chat-ui.chat-active .sidebar { display: none; }
+            #chat-ui.chat-active .main-chat { display: flex; }
         }
         /* 搜尋高亮效果 */
         .search-match-active {
@@ -323,6 +368,128 @@
             white-space: nowrap;
             flex-shrink: 0;
         }
+
+      .main-chat { position: relative; min-height: 0; }
+      .input-area { flex-shrink: 0; }
+      .chat-warning {
+          margin: 10px 20px 0;
+          padding: 10px 12px;
+          border-radius: 10px;
+          background: #fff3cd;
+          border: 1px solid #ffe69c;
+          color: #856404;
+          font-size: 13px;
+          display: none;
+      }
+      .chat-warning.visible { display: block; }
+      .reply-indicator {
+          margin: 0 20px 8px;
+          padding: 10px 12px;
+          border-left: 4px solid var(--primary);
+          background: #f3f8ff;
+          border-radius: 10px;
+          display: flex;
+          justify-content: space-between;
+          gap: 10px;
+          align-items: flex-start;
+          font-size: 13px;
+          color: var(--text);
+      }
+      .reply-indicator .reply-meta {
+          min-width: 0;
+      }
+      .reply-indicator .reply-title {
+          font-weight: 700;
+          margin-bottom: 4px;
+      }
+      .reply-indicator .reply-snippet {
+          color: var(--light);
+          word-break: break-word;
+      }
+      .message-reply {
+          margin-bottom: 8px;
+          padding: 8px 10px;
+          border-left: 3px solid var(--primary);
+          background: rgba(0,132,255,0.06);
+          border-radius: 8px;
+          font-size: 12px;
+          color: var(--light);
+          cursor: pointer;
+          max-width: 100%;
+          word-break: break-word;
+      }
+      .message-reply strong { color: var(--text); }
+      .message-reply .preview {
+          display: block;
+          margin-top: 2px;
+          color: var(--light);
+      }
+      .reaction-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+          margin-top: 6px;
+      }
+      .reaction-chip {
+          border: 1px solid #d8e3f0;
+          background: #fff;
+          border-radius: 999px;
+          padding: 4px 8px;
+          font-size: 12px;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+      }
+      .reaction-chip.mine {
+          border-color: var(--primary);
+          background: #eef6ff;
+      }
+      .reaction-menu {
+          position: absolute;
+          right: 16px;
+          bottom: 76px;
+          background: #fff;
+          border: 1px solid #e6e6e6;
+          border-radius: 14px;
+          padding: 10px;
+          box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+          z-index: 30;
+          display: flex;
+          gap: 6px;
+          flex-wrap: wrap;
+          max-width: 260px;
+      }
+      .reaction-menu.hidden { display: none; }
+      .reaction-menu button {
+          border: 1px solid #eee;
+          background: #fafafa;
+          border-radius: 10px;
+          font-size: 18px;
+          width: 38px;
+          height: 38px;
+          cursor: pointer;
+      }
+      .msg-highlight .bubble,
+      .msg-highlight .msg-img,
+      .msg-highlight .message-reply {
+          box-shadow: 0 0 0 3px rgba(0,132,255,0.25);
+      }
+      .msg-highlight {
+          animation: pulseHighlight 1.8s ease;
+      }
+      @keyframes pulseHighlight {
+          0% { transform: scale(1); }
+          20% { transform: scale(1.01); }
+          100% { transform: scale(1); }
+      }
+      .profile-actions {
+          display: flex;
+          gap: 8px;
+          margin-top: 10px;
+      }
+      .profile-actions .btn { flex: 1; }
+
     </style>
 </head>
 <body>
@@ -403,10 +570,18 @@
                 </div>
             </header>
             <div id="room-members" class="room-members hidden"></div>
+            <div id="chat-warning" class="chat-warning"></div>
             <div class="chat-messages" id="chat-messages"></div>
             <div id="edit-indicator" class="hidden">
                 <span>正在編輯訊息...</span>
                 <a id="cancel-edit" style="color:var(--danger); cursor:pointer; font-weight:bold;">取消</a>
+            </div>
+            <div id="reply-indicator" class="reply-indicator hidden">
+                <div class="reply-meta">
+                    <div class="reply-title">正在回覆</div>
+                    <div class="reply-snippet" id="reply-indicator-text"></div>
+                </div>
+                <a id="cancel-reply" style="color:var(--danger); cursor:pointer; font-weight:bold;">取消</a>
             </div>
 
             <div class="input-area">
@@ -463,7 +638,10 @@
             <p><b>地址：</b><span id="view-user-address"></span></p>
         </div>
 
-        <button class="btn btn-p" style="margin-top: 15px;" onclick="closeModals()">關閉</button>
+        <div class="profile-actions">
+            <button class="btn" id="block-toggle-btn" style="background:#f0f2f5;">封鎖</button>
+            <button class="btn btn-p" onclick="closeModals()">關閉</button>
+        </div>
     </div>
 </div>
 
@@ -506,7 +684,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc, setDoc, getDoc, doc, query, where, orderBy, onSnapshot, serverTimestamp, getDocs, updateDoc, arrayUnion, Timestamp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, setDoc, getDoc, doc, query, where, orderBy, onSnapshot, serverTimestamp, getDocs, updateDoc, arrayUnion, arrayRemove, Timestamp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCPtBwhqkLZAX3qWkGWKvOcBL5vmSxar-0",
@@ -530,6 +708,154 @@
     let currentTab = 'private';
     let unsubRooms = null, unsubMessages = null;
     let userCache = {};
+    let currentMessagesMap = new Map();
+
+    let replyingMsgId = null;
+    let replyingMsgData = null;
+    let pendingReactionMsgId = null;
+
+    const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '🎉', '😢'];
+
+    const jsEscape = (str = '') => String(str)
+        .replaceAll('\\', '\\\\')
+        .replaceAll("'", "\\'")
+        .replaceAll('\n', '\\n')
+        .replaceAll('\r', '');
+
+    function getCurrentBlockedUsers() {
+        return Array.isArray(currentUserData?.blockedUsers) ? currentUserData.blockedUsers : [];
+    }
+
+    function isBlockedByMe(customId) {
+        const id = String(customId || '').toLowerCase();
+        return getCurrentBlockedUsers().some((x) => String(x).toLowerCase() === id);
+    }
+
+    function doesUserBlockMe(customId) {
+        const id = String(customId || '').toLowerCase();
+        const u = userCache[id];
+        return Array.isArray(u?.blockedUsers) && u.blockedUsers.some((x) => String(x).toLowerCase() === String(currentUserData?.customId || '').toLowerCase());
+    }
+
+    function getPrivateChatOtherId(roomData) {
+        if (!roomData || roomData.type !== 'private' || !Array.isArray(roomData.members)) return null;
+        return roomData.members.find((m) => m !== currentUserData.customId) || null;
+    }
+
+    function getMessagePreviewText(message = {}) {
+        if (!message) return '原訊息不存在';
+        if (message.isUnsent) return '已收回訊息';
+        if (message.type === 'image') return '[圖片]';
+        const text = String(message.content || '').trim();
+        if (!text) return '空白訊息';
+        return text.length > 42 ? `${text.slice(0, 42)}…` : text;
+    }
+
+    function hideReactionMenu() {
+        const menu = document.getElementById('reaction-menu');
+        if (menu) menu.classList.add('hidden');
+        pendingReactionMsgId = null;
+    }
+
+    function showReactionMenu(msgId) {
+        pendingReactionMsgId = msgId;
+        const menu = document.getElementById('reaction-menu');
+        if (menu) menu.classList.remove('hidden');
+    }
+
+    function clearReplyState() {
+        replyingMsgId = null;
+        replyingMsgData = null;
+        const replyIndicator = document.getElementById('reply-indicator');
+        const replyText = document.getElementById('reply-indicator-text');
+        if (replyIndicator) replyIndicator.classList.add('hidden');
+        if (replyText) replyText.textContent = '';
+    }
+
+    function refreshReplyIndicator() {
+        const replyIndicator = document.getElementById('reply-indicator');
+        const replyText = document.getElementById('reply-indicator-text');
+        if (!replyIndicator || !replyText || !replyingMsgData) {
+            if (replyIndicator) replyIndicator.classList.add('hidden');
+            return;
+        }
+        const senderName = replyingMsgData.senderName || replyingMsgData.senderId || '未知使用者';
+        replyText.innerHTML = `<strong>${escapeHTML(senderName)}</strong>：${escapeHTML(getMessagePreviewText(replyingMsgData))}`;
+        replyIndicator.classList.remove('hidden');
+    }
+
+    function updateComposerByAccess(roomData) {
+        const warningEl = document.getElementById('chat-warning');
+        const msgInput = document.getElementById('msg-input');
+        const sendBtn = document.getElementById('send-btn');
+        const imgInput = document.getElementById('img-input');
+
+        const shouldLock = Boolean(roomData && roomData.type === 'private' && getPrivateChatOtherId(roomData));
+        let warning = '';
+        if (shouldLock) {
+            const otherId = getPrivateChatOtherId(roomData);
+            const blockedByMe = isBlockedByMe(otherId);
+            const blockedMe = doesUserBlockMe(otherId);
+            if (blockedByMe || blockedMe) {
+                warning = blockedByMe
+                    ? `你已封鎖 @${otherId}，目前無法傳送私訊。`
+                    : `無法傳送訊息`;
+            }
+        }
+
+        const locked = Boolean(warning);
+        if (warningEl) {
+            warningEl.textContent = warning;
+            warningEl.classList.toggle('visible', locked);
+        }
+        [msgInput, sendBtn, imgInput].forEach((el) => {
+            if (el) el.disabled = locked;
+        });
+        if (!locked && warningEl) warningEl.classList.remove('visible');
+        if (!locked) hideReactionMenu();
+    }
+
+    function shouldHideMessageForCurrentUser(message) {
+        if (!message) return false;
+        const senderId = String(message.senderId || '').toLowerCase();
+        const me = String(currentUserData?.customId || '').toLowerCase();
+        if (!senderId || senderId === me) return false;
+
+        const hiddenByMe = isBlockedByMe(senderId);
+        const hiddenMe = doesUserBlockMe(senderId);
+        return Boolean(activeRoomData && activeRoomData.type === 'group' && (hiddenByMe || hiddenMe));
+    }
+
+    function renderReplyBlock(replyTo, messageId) {
+        if (!replyTo) return '';
+        const replyId = String(replyTo.id || '');
+        const preview = getMessagePreviewText(replyTo);
+        const sender = replyTo.senderName || replyTo.senderId || '未知使用者';
+        return `
+            <div class="message-reply" onclick="scrollToMessage('${jsEscape(replyId)}')">
+                <strong>${escapeHTML(sender)}</strong>
+                <span class="preview">${escapeHTML(preview)}</span>
+            </div>`;
+    }
+
+    function renderReactionRow(messageId, reactions = {}) {
+        const myId = String(currentUserData?.customId || '').toLowerCase();
+        const items = Object.entries(reactions)
+            .filter(([, users]) => Array.isArray(users) && users.length > 0)
+            .map(([emoji, users]) => {
+                const mine = users.some((u) => String(u).toLowerCase() === myId);
+                return `<button class="reaction-chip ${mine ? 'mine' : ''}" type="button" onclick="toggleReaction('${jsEscape(messageId)}', '${jsEscape(emoji)}')">${emoji}<span>${users.length}</span></button>`;
+            });
+        return items.length ? `<div class="reaction-row">${items.join('')}</div>` : '';
+    }
+
+    function closeComposerStates() {
+        clearReplyState();
+        hideReactionMenu();
+        const editIndicator = document.getElementById('edit-indicator');
+        if (editIndicator) editIndicator.classList.add('hidden');
+        editingMsgId = null;
+    }
 
     const escapeHTML = (str = '') => String(str)
         .replaceAll('&', '&amp;')
@@ -654,10 +980,18 @@
         if (e.target.id === 'image-preview-modal') closeImagePreview();
     };
     document.getElementById('close-image-preview').onclick = closeImagePreview;
+    document.addEventListener('click', (e) => {
+        const menu = document.getElementById('reaction-menu');
+        if (!menu || menu.classList.contains('hidden')) return;
+        if (!menu.contains(e.target) && !String(e.target?.className || '').includes('op-btn')) {
+            hideReactionMenu();
+        }
+    });
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             closeModals();
             closeImagePreview();
+            hideReactionMenu();
         }
     });
 
@@ -665,7 +999,7 @@
         if (user) {
             const userDoc = await getDoc(doc(db, "users", user.uid));
             if (userDoc.exists()) {
-                currentUserData = userDoc.data();
+                currentUserData = { ...userDoc.data(), blockedUsers: userDoc.data().blockedUsers || [] };
                 await refreshUserCache();
                 document.getElementById('auth-section').classList.add('hidden');
                 document.getElementById('chat-ui').classList.remove('hidden');
@@ -702,7 +1036,8 @@
             customId: cid,
             email: auth.currentUser.email,
             avatarUrl,
-            statusMessage
+            statusMessage,
+            blockedUsers: []
         }, { merge: true });
         location.reload();
     };
@@ -764,11 +1099,13 @@
     async function openRoom(roomId, title, roomData) {
         activeRoomId = roomId;
         activeRoomData = roomData;
+        closeComposerStates();
         document.getElementById('room-title').innerText = title;
         document.getElementById('invite-more-btn').classList.toggle('hidden', roomData.type !== 'group');
 
         document.getElementById('chat-ui').classList.add('chat-active');
         renderGroupMembers(roomData);
+        updateComposerByAccess(roomData);
         const lastReadTs = roomData.lastRead?.[currentUserData.customId];
         await updateDoc(doc(db, "rooms", roomId), { [`lastRead.${currentUserData.customId}`]: serverTimestamp() });
         loadMessages(roomId, roomData, lastReadTs);
@@ -776,7 +1113,7 @@
     }
 
     function loadMessages(roomId, roomData, lastReadTs) {
-        if(unsubMessages) unsubMessages();
+        if (unsubMessages) unsubMessages();
         const q = query(collection(db, "messages"), where("roomId", "==", roomId), orderBy("ts", "asc"));
         let dividerInjected = false;
 
@@ -784,12 +1121,14 @@
             const container = document.getElementById('chat-messages');
             container.innerHTML = "";
             dividerInjected = false;
+            currentMessagesMap = new Map();
 
             snap.forEach(docSnap => {
                 const m = docSnap.data();
-
-                // --- 修改 A：如果這則訊息的 deletedBy 包含我，就跳過不顯示 ---
                 if (m.deletedBy && m.deletedBy.includes(currentUserData.customId)) return;
+                if (shouldHideMessageForCurrentUser(m)) return;
+
+                currentMessagesMap.set(docSnap.id, { id: docSnap.id, ...m });
 
                 if (!dividerInjected && lastReadTs && m.ts && m.ts.toMillis() > lastReadTs.toMillis() && m.uid !== auth.currentUser.uid) {
                     const hr = document.createElement('div');
@@ -802,46 +1141,46 @@
                 const isMine = m.uid === auth.currentUser.uid;
                 const row = document.createElement('div');
                 row.className = `msg-row ${isMine ? 'mine' : 'others'}`;
+                row.id = `msg-${docSnap.id}`;
 
-                const sender = userCache[m.senderId.toLowerCase()] || { displayName: m.senderId };
-                const avatarHTML = `<div class="avatar-circle" onclick="viewUserProfile('${m.senderId}')">${getAvatarHTML(sender, m.senderId)}</div>`;
-                
+                const sender = userCache[m.senderId.toLowerCase()] || { displayName: m.senderId, customId: m.senderId };
+                const senderName = sender.displayName || m.senderId;
+                const avatarHTML = `<div class="avatar-circle" onclick="viewUserProfile('${jsEscape(m.senderId)}')">${getAvatarHTML(sender, m.senderId)}</div>`;
+
                 let contentHTML = "";
                 if (m.isUnsent) {
                     contentHTML = `
                         ${avatarHTML}
                         <div class="msg-content-wrapper">
-                            <div class="unsent-text">${escapeHTML(sender.displayName || m.senderId)} 已收回訊息</div>
+                            <div class="unsent-text">${escapeHTML(senderName || m.senderId)} 已收回訊息</div>
                         </div>`;
                 } else {
                     const editedTag = m.isEdited ? `<span class="edited-label">(已編輯)</span>` : "";
+                    const replyBlock = m.replyTo ? renderReplyBlock(m.replyTo, docSnap.id) : "";
                     const body = m.type === 'image'
-                        ? `<img src="${m.content}" class="msg-img zoomable-img" data-src="${m.content}" alt="訊息圖片">`
+                        ? `<img src="${escapeHTML(m.content)}" class="msg-img zoomable-img" data-src="${escapeHTML(m.content)}" alt="訊息圖片">`
                         : `<div class="bubble">${escapeHTML(m.content)}${editedTag}</div>`;
-                    
-                    // --- 修改 B：正確組合按鈕 ---
-                    // 所有人都可以看到「刪除」(對自己隱藏)
+
+                    const reactionRow = renderReactionRow(docSnap.id, m.reactions || {});
                     const deleteBtn = `<span class="op-btn" onclick="deleteMsg('${docSnap.id}')">刪除</span>`;
-                    
-                    // 只有自己的訊息可以看到「收回」
                     const unsendBtn = isMine ? `<span class="op-btn" onclick="unsendMsg('${docSnap.id}')">收回</span>` : "";
-                    
-                    // 只有自己的文字訊息可以看到「編輯」
-                    const editBtn = (isMine && m.type === 'text') 
-                        ? `<span class="op-btn" onclick="prepareEdit('${docSnap.id}', '${m.content.replace(/'/g, "\\'")}')">編輯</span>` 
+                    const editBtn = (isMine && m.type === 'text')
+                        ? `<span class="op-btn" onclick="prepareEdit('${docSnap.id}', '${jsEscape(m.content)}')">編輯</span>`
                         : "";
-                    
-                    // 把所有按鈕組合進 ops
-                    const ops = `<div class="msg-ops">${deleteBtn}${unsendBtn}${editBtn}</div>`;
-                    
+                    const replyBtn = `<span class="op-btn" onclick="prepareReply('${docSnap.id}')">回覆</span>`;
+                    const reactBtn = `<span class="op-btn" onclick="openReactionMenu('${docSnap.id}')">😊</span>`;
+                    const ops = `<div class="msg-ops">${replyBtn}${reactBtn}${deleteBtn}${unsendBtn}${editBtn}</div>`;
+
                     contentHTML = `
                         ${avatarHTML}
                         <div class="msg-content-wrapper">
-                            <span class="sender">${escapeHTML(sender.displayName || m.senderId)} (@${escapeHTML(m.senderId)})</span>
+                            <span class="sender">${escapeHTML(senderName)} (@${escapeHTML(m.senderId)})</span>
+                            ${replyBlock}
                             <div class="bubble-container">${body}${ops}</div>
+                            ${reactionRow}
                         </div>`;
                 }
-                
+
                 row.innerHTML = contentHTML;
                 container.appendChild(row);
             });
@@ -854,10 +1193,43 @@
     }
 
     window.prepareEdit = (msgId, content) => {
+        replyingMsgId = null;
+        replyingMsgData = null;
+        refreshReplyIndicator();
+        hideReactionMenu();
         editingMsgId = msgId;
         document.getElementById('msg-input').value = content;
         document.getElementById('edit-indicator').classList.remove('hidden');
         document.getElementById('msg-input').focus();
+    };
+
+    window.prepareReply = (msgId) => {
+        const message = currentMessagesMap.get(msgId);
+        if (!message) return;
+        editingMsgId = null;
+        document.getElementById('edit-indicator').classList.add('hidden');
+        replyingMsgId = msgId;
+        replyingMsgData = {
+            id: msgId,
+            senderId: message.senderId,
+            senderName: (userCache[String(message.senderId || '').toLowerCase()]?.displayName) || message.senderId,
+            type: message.type,
+            content: message.content,
+            isUnsent: message.isUnsent
+        };
+        refreshReplyIndicator();
+        document.getElementById('msg-input').focus();
+    };
+
+    window.scrollToMessage = (msgId) => {
+        const target = document.getElementById(`msg-${msgId}`);
+        if (!target) {
+            alert('原訊息目前不可見');
+            return;
+        }
+        target.classList.add('msg-highlight');
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        window.setTimeout(() => target.classList.remove('msg-highlight'), 1800);
     };
 
     // 2. 取消編輯
@@ -866,34 +1238,52 @@
         document.getElementById('msg-input').value = "";
         document.getElementById('edit-indicator').classList.add('hidden');
     };
+
+    document.getElementById('cancel-reply').onclick = () => {
+        clearReplyState();
+    };
     // 3. 修改你的 sendMsg 函式，支援「更新」邏輯
     async function sendMsg(content, type = 'text') {
-        if(!activeRoomId || !content.trim()) return;
+        if (!activeRoomId || !content.trim()) return;
+        if (document.getElementById('msg-input').disabled) return alert('目前無法傳送訊息');
 
         if (editingMsgId) {
-            // --- 編輯模式：更新現有訊息 ---
             await updateDoc(doc(db, "messages", editingMsgId), {
                 content: content,
-                isEdited: true // 標記為已編輯
+                isEdited: true
             });
-            // 重設狀態
             editingMsgId = null;
             document.getElementById('edit-indicator').classList.add('hidden');
         } else {
-            // --- 一般模式：新增訊息 ---
-            await addDoc(collection(db, "messages"), {
-                roomId: activeRoomId, 
-                uid: auth.currentUser.uid, 
+            const payload = {
+                roomId: activeRoomId,
+                uid: auth.currentUser.uid,
                 senderId: currentUserData.customId,
-                content: content, 
-                type: type, 
-                ts: serverTimestamp(), 
+                content: content,
+                type: type,
+                ts: serverTimestamp(),
                 isUnsent: false,
                 isEdited: false,
-                deletedBy: []
-            });
+                deletedBy: [],
+                reactions: {}
+            };
+
+            if (replyingMsgId && replyingMsgData) {
+                payload.replyTo = {
+                    id: replyingMsgId,
+                    senderId: replyingMsgData.senderId,
+                    senderName: replyingMsgData.senderName,
+                    type: replyingMsgData.type,
+                    content: replyingMsgData.content
+                };
+            }
+
+            await addDoc(collection(db, "messages"), payload);
         }
+
         document.getElementById('msg-input').value = "";
+        clearReplyState();
+        hideReactionMenu();
     }
 
     // 取得頭像 HTML 內容的輔助函式
@@ -906,30 +1296,113 @@
 
 
     window.unsendMsg = async (msgId) => {
-        if(confirm("確定要收回訊息嗎？")) await updateDoc(doc(db, "messages", msgId), { isUnsent: true, content: "" });
+        if (confirm("確定要收回訊息嗎？")) {
+            await updateDoc(doc(db, "messages", msgId), { isUnsent: true, content: "" });
+        }
     };
+
+    window.toggleReaction = async (msgId, emoji) => {
+        if (!msgId || !emoji) return;
+        const ref = doc(db, "messages", msgId);
+        const snap = await getDoc(ref);
+        if (!snap.exists()) return;
+
+        const data = snap.data();
+        const reactions = { ...(data.reactions || {}) };
+        const myId = String(currentUserData.customId || '').toLowerCase();
+        let currentEmoji = null;
+
+        for (const key of Object.keys(reactions)) {
+            const users = Array.isArray(reactions[key]) ? reactions[key].map((u) => String(u).toLowerCase()) : [];
+            if (users.includes(myId)) {
+                currentEmoji = key;
+                break;
+            }
+        }
+
+        if (currentEmoji === emoji) {
+            reactions[emoji] = (reactions[emoji] || []).filter((u) => String(u).toLowerCase() !== myId);
+            if (!reactions[emoji].length) delete reactions[emoji];
+        } else {
+            if (currentEmoji) {
+                reactions[currentEmoji] = (reactions[currentEmoji] || []).filter((u) => String(u).toLowerCase() !== myId);
+                if (!reactions[currentEmoji].length) delete reactions[currentEmoji];
+            }
+            reactions[emoji] = Array.from(new Set([...(reactions[emoji] || []), currentUserData.customId]));
+        }
+
+        await updateDoc(ref, { reactions });
+    };
+
+    window.openReactionMenu = (msgId) => {
+        showReactionMenu(msgId);
+    };
+
+    window.chooseReaction = async (emoji) => {
+        if (!pendingReactionMsgId) return;
+        const msgId = pendingReactionMsgId;
+        hideReactionMenu();
+        await window.toggleReaction(msgId, emoji);
+    };
+
+    window.closeReactionMenu = () => hideReactionMenu();
+
     window.viewUserProfile = (customId) => {
         const user = userCache[customId.toLowerCase()];
         if (!user) return;
-        
+
         const avatarEl = document.getElementById('view-user-avatar');
         const nameEl = document.getElementById('view-user-name');
         const idEl = document.getElementById('view-user-id');
         const statusEl = document.getElementById('view-user-status');
-        const phoneEl = document.getElementById('view-user-phone');     // 新增
-        const addressEl = document.getElementById('view-user-address'); // 新增
-        
-        // 填入資料
+        const phoneEl = document.getElementById('view-user-phone');
+        const addressEl = document.getElementById('view-user-address');
+        const blockBtn = document.getElementById('block-toggle-btn');
+
         avatarEl.innerHTML = getAvatarHTML(user, customId);
         nameEl.textContent = user.displayName || customId;
         idEl.textContent = `@${user.customId}`;
-        
-        // 填入電話、住址、狀態（若無資料則顯示「未公開」）
+
         statusEl.textContent = user.statusMessage || "這傢伙很懶，什麼都沒留下。";
         phoneEl.textContent = user.phone || "未公開";
         addressEl.textContent = user.address || "未公開";
-        
+
+        if (blockBtn) {
+            const isMe = String(customId).toLowerCase() === String(currentUserData?.customId || '').toLowerCase();
+            blockBtn.classList.toggle('hidden', isMe);
+            blockBtn.disabled = false;
+            blockBtn.textContent = isBlockedByMe(customId) ? '解除封鎖' : '封鎖';
+            blockBtn.onclick = () => toggleBlockUser(customId);
+        }
+
         document.getElementById('modal-view-user').classList.remove('hidden');
+    };
+
+    window.toggleBlockUser = async (customId) => {
+        const targetId = String(customId || '').toLowerCase();
+        if (!targetId || targetId === String(currentUserData?.customId || '').toLowerCase()) return;
+
+        const meRef = doc(db, "users", auth.currentUser.uid);
+        const alreadyBlocked = isBlockedByMe(targetId);
+
+        if (alreadyBlocked) {
+            await updateDoc(meRef, { blockedUsers: arrayRemove(targetId) });
+            currentUserData.blockedUsers = getCurrentBlockedUsers().filter((x) => String(x).toLowerCase() !== targetId);
+        } else {
+            await updateDoc(meRef, { blockedUsers: arrayUnion(targetId) });
+            currentUserData.blockedUsers = Array.from(new Set([...getCurrentBlockedUsers(), targetId]));
+        }
+
+        userCache[String(currentUserData.customId).toLowerCase()] = currentUserData;
+
+        const blockBtn = document.getElementById('block-toggle-btn');
+        if (blockBtn) blockBtn.textContent = alreadyBlocked ? '封鎖' : '解除封鎖';
+
+        if (activeRoomData && activeRoomData.type === 'private' && getPrivateChatOtherId(activeRoomData) === targetId) {
+            updateComposerByAccess(activeRoomData);
+            loadMessages(activeRoomId, activeRoomData, activeRoomData.lastRead?.[currentUserData.customId]);
+        }
+        loadRooms();
     };
 
     // 1. 圖片壓縮處理函式 (讓頭像可以像照片一樣上傳)
@@ -1000,36 +1473,40 @@
 
     document.getElementById('confirm-add-friend').onclick = async () => {
         const targetId = document.getElementById('target-friend-id').value.trim().toLowerCase();
-        if(targetId === currentUserData.customId) return alert("不能加自己");
+        if (targetId === currentUserData.customId) return alert("不能加自己");
+
+        const q = await getDocs(query(collection(db, "users"), where("customId", "==", targetId)));
+        if (q.empty) return alert("找不到用戶");
+
+        const target = q.docs[0].data();
+        if (isBlockedByMe(targetId) || (Array.isArray(target.blockedUsers) && target.blockedUsers.includes(currentUserData.customId))) {
+            return alert("你和這位用戶之間已被封鎖，無法建立私聊。");
+        }
 
         // --- 修復 Bug：檢查是否已經是好友 ---
         const qExisting = query(
-            collection(db, "rooms"), 
-            where("type", "==", "private"), 
+            collection(db, "rooms"),
+            where("type", "==", "private"),
             where("members", "array-contains", currentUserData.customId)
         );
         const existingSnap = await getDocs(qExisting);
         let isAlreadyFriend = false;
-        existingSnap.forEach(doc => {
-            if (doc.data().members.includes(targetId)) isAlreadyFriend = true;
+        existingSnap.forEach(docSnap => {
+            if (docSnap.data().members.includes(targetId)) isAlreadyFriend = true;
         });
 
         if (isAlreadyFriend) return alert("你們已經是好友了，不需要重複加入！");
         // ---------------------------------
 
-        const q = await getDocs(query(collection(db, "users"), where("customId", "==", targetId)));
-        if(q.empty) return alert("找不到用戶");
-        
-        const target = q.docs[0].data();
         await addDoc(collection(db, "rooms"), {
             name: `${target.displayName} (@${target.customId})`,
-            type: 'private', 
+            type: 'private',
             members: [currentUserData.customId, targetId],
-            memberDetails: { 
+            memberDetails: {
                 [currentUserData.customId]: { name: currentUserData.displayName },
                 [targetId]: { name: target.displayName }
             },
-            lastRead: {}, 
+            lastRead: {},
             lastMessageAt: serverTimestamp()
         });
         closeModals();
@@ -1048,7 +1525,12 @@
     };
 
     document.getElementById('send-btn').onclick = () => sendMsg(document.getElementById('msg-input').value);
-    document.getElementById('msg-input').onkeypress = (e) => { if(e.key==='Enter') sendMsg(e.target.value); };
+    document.getElementById('msg-input').onkeydown = (e) => {
+        if (e.key === 'Enter' && !e.isComposing) {
+            e.preventDefault();
+            sendMsg(e.target.value);
+        }
+    };
     document.getElementById('img-input').onchange = (e) => {
         const file = e.target.files[0];
         const reader = new FileReader();
@@ -1207,5 +1689,16 @@
         }
     };
 </script>
+
+<div id="reaction-menu" class="reaction-menu hidden">
+    <button type="button" onclick="chooseReaction('👍')">👍</button>
+    <button type="button" onclick="chooseReaction('❤️')">❤️</button>
+    <button type="button" onclick="chooseReaction('😂')">😂</button>
+    <button type="button" onclick="chooseReaction('😮')">😮</button>
+    <button type="button" onclick="chooseReaction('🎉')">🎉</button>
+    <button type="button" onclick="chooseReaction('😢')">😢</button>
+    <button type="button" onclick="closeReactionMenu()" title="關閉">×</button>
+</div>
+
 </body>
 </html>
