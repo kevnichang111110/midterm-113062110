@@ -262,15 +262,19 @@
             .chat-messages {
                 flex: 1; 
                 min-height: 0; /* 必須加上這行，Flex 內部的滾動才不會壞掉 */
+                padding-bottom: 90px;
             }
 
             /* 輸入框區域優化 */
             .input-area {
-                padding: 10px 10px calc(10px + env(safe-area-inset-bottom));
+                padding: 10px 10px calc(12px + env(safe-area-inset-bottom));
                 background: #fff;
-                position: sticky;
-                bottom: 0;
-                z-index: 10;
+                position: fixed;
+                left: 0;
+                right: 0;
+                bottom: calc(12px + env(safe-area-inset-bottom)); /* 往上抬 12px */
+                z-index: 999;
+                border-top: 1px solid #eee;
             }
             #msg-input {
                 padding: 8px 15px;
@@ -1049,6 +1053,18 @@
         loadRooms();
     };
 
+    function shouldHideMessageInRoom(message, roomData) {
+        if (!roomData || roomData.type !== 'group') return false;
+
+        const senderId = String(message.senderId || '').toLowerCase();
+        const myId = String(currentUserData?.customId || '').toLowerCase();
+        if (!senderId || senderId === myId) return false;
+
+        const blockedByMe = isBlockedByMe(senderId);
+        const blockedMe = doesUserBlockMe(senderId);
+        return blockedByMe || blockedMe;
+    }
+    
     async function loadRooms() {
         if (!currentUserData) return;
         if (unsubRooms) unsubRooms();
@@ -1079,8 +1095,12 @@
                 // 過濾掉自己發的
                 const unreadCount = roomDoc.id === activeRoomId
                     ? 0
-                    : unreadSnap.docs.filter(d => d.data().uid !== auth.currentUser.uid).length;
-                
+                    : unreadSnap.docs.filter((d) => {
+                        const m = d.data();
+                        if (m.uid === auth.currentUser.uid) return false; // 自己發的不算
+                        if (room.type === 'group' && shouldHideMessageInRoom(m, room)) return false; // 被封鎖後要隱藏的訊息不算
+                        return true;
+                    }).length;
                 return { id: roomDoc.id, title, unreadCount, data: room };
             });
 
