@@ -733,13 +733,14 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc, setDoc, getDoc, doc, query, where, orderBy, onSnapshot, serverTimestamp, getDocs, updateDoc, arrayUnion, arrayRemove, Timestamp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, setDoc, getDoc, doc, query, where, orderBy, onSnapshot, serverTimestamp, getDocs, updateDoc, arrayUnion, arrayRemove, Timestamp,limit } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 
     import { GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
     const provider = new GoogleAuthProvider();
 
     document.getElementById("google-login-btn").onclick = async () => {
         try {
+            await ensureNotificationPermission();
             const result = await signInWithPopup(auth, provider);
             alert("Google 登入成功：" + result.user.email);
         } catch (err) {
@@ -779,50 +780,85 @@
 
     // 1) 新增：全域訊息監聽，用來做「即時通知」
     let unsubGlobalMessages = null;
+    let globalMessageIdsSeen = new Set();
+
+    async function ensureNotificationPermission() {
+        if (!('Notification' in window)) return false;
+        if (Notification.permission === 'granted') return true;
+        if (Notification.permission === 'denied') return false;
+
+        try {
+            const result = await Notification.requestPermission();
+            return result === 'granted';
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function refreshRoomList() {
+        if (currentUserData) loadRooms();
+    }
+
+    function showNotification(senderName, text) {
+        if (!('Notification' in window) || Notification.permission !== 'granted') return;
+        const options = {
+            body: text,
+            icon: "https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg",
+            tag: "nthu-chat-new-msg",
+            renotify: true
+        };
+        new Notification(`來自 ${senderName} 的新訊息`, options);
+    }
 
     function startGlobalMessageListener() {
         if (unsubGlobalMessages) unsubGlobalMessages();
 
-        const q = query(collection(db, "messages"), orderBy("ts", "asc"));
-        let firstSnapshot = true;
+        globalMessageIdsSeen = new Set();
+        let isBootstrapped = false;
+
+        // 監聽整個 messages collection，讓「未讀徽章」與「Chrome 通知」都能即時刷新
+        const q = collection(db, "messages");
 
         unsubGlobalMessages = onSnapshot(q, (snap) => {
-            // 忽略第一次載入的歷史資料，避免歷史訊息全跳通知
-            if (firstSnapshot) {
-                firstSnapshot = false;
+            // 第一次進來先把現有訊息 ID 記住，不對歷史訊息跳通知
+            if (!isBootstrapped) {
+                snap.forEach((docSnap) => globalMessageIdsSeen.add(docSnap.id));
+                isBootstrapped = true;
                 return;
             }
 
+            let shouldRefreshRooms = false;
+
             snap.docChanges().forEach((change) => {
                 if (change.type !== "added") return;
+                const docId = change.doc.id;
+                if (globalMessageIdsSeen.has(docId)) return;
 
+                globalMessageIdsSeen.add(docId);
                 const m = change.doc.data();
-                if (!m.ts) return;
-                if (m.uid === auth.currentUser.uid) return;
+                if (!m || !auth.currentUser) return;
 
-                // 只在「不是目前正在看的聊天室」時通知
-                // 若你想連目前聊天室也通知，可把這行拿掉
-                if (!document.hidden && m.roomId === activeRoomId) return;
+                // 排除自己發送的訊息
+                if (String(m.uid || '') === String(auth.currentUser.uid || '')) return;
 
-                const sender = userCache[m.senderId?.toLowerCase()] || { displayName: m.senderId };
+                shouldRefreshRooms = true;
+
+                const sender = userCache[String(m.senderId || '').toLowerCase()] || { displayName: m.senderId };
                 const notifyText = m.type === "image" ? "傳了一張圖片" : String(m.content || "");
-                showNotification(sender.displayName || m.senderId, notifyText);
+
+                // 在別的聊天室、或頁面沒在前景時，才跳通知
+                const isAnotherRoom = m.roomId !== activeRoomId;
+                if (document.hidden || isAnotherRoom) {
+                    showNotification(sender.displayName || m.senderId, notifyText);
+                }
             });
+
+            if (shouldRefreshRooms) {
+                refreshRoomList();
+            }
         });
     }
-    if (Notification.permission !== "granted") {
-        Notification.requestPermission();
-    }
 
-    function showNotification(senderName, text) {
-    if (Notification.permission === "granted") {
-        const options = {
-            body: text,
-            icon: "https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" // 可換成你的 App Logo
-        };
-        new Notification(`來自 ${senderName} 的新訊息`, options);
-    }
-}
     const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '🎉', '😢'];
 
     const jsEscape = (str = '') => String(str)
@@ -1144,10 +1180,7 @@
     });
 
     document.getElementById('login-btn').onclick = async () => {
-        // 主動請求通知權限
-        if (Notification.permission !== "granted") {
-            Notification.requestPermission();
-        }
+        await ensureNotificationPermission();
         try { 
             await signInWithEmailAndPassword(auth, email.value, password.value); 
         } catch(e) { 
@@ -1273,16 +1306,42 @@
         });
     }
 
+    let unsubOtherUserStatus = null; // 用於監聽對方的封鎖狀態
+
     async function openRoom(roomId, title, roomData) {
         activeRoomId = roomId;
         activeRoomData = roomData;
         closeComposerStates();
+        
+        // 清除舊的監聽
+        if (unsubOtherUserStatus) unsubOtherUserStatus();
+
         document.getElementById('room-title').innerText = title;
         document.getElementById('invite-more-btn').classList.toggle('hidden', roomData.type !== 'group');
-
         document.getElementById('chat-ui').classList.add('chat-active');
+        
         renderGroupMembers(roomData);
-        updateComposerByAccess(roomData);
+
+        // --- 【修正封鎖 Bug】如果是私聊，監聽對方的封鎖清單 ---
+        if (roomData.type === 'private') {
+            const otherId = getPrivateChatOtherId(roomData);
+            const q = query(collection(db, "users"), where("customId", "==", otherId));
+            
+            unsubOtherUserStatus = onSnapshot(q, (snapshot) => {
+                if (!snapshot.empty) {
+                    const otherData = snapshot.docs[0].data();
+                    // 更新快取
+                    userCache[String(otherId).toLowerCase()] = otherData;
+                    // 立刻重新檢查權限並鎖定或解鎖輸入框
+                    updateComposerByAccess(roomData);
+                    refreshRoomList();
+                }
+            });
+            updateComposerByAccess(roomData);
+        } else {
+            updateComposerByAccess(roomData);
+        }
+
         const lastReadTs = roomData.lastRead?.[currentUserData.customId];
         await updateDoc(doc(db, "rooms", roomId), { [`lastRead.${currentUserData.customId}`]: serverTimestamp() });
         loadMessages(roomId, roomData, lastReadTs);
@@ -1532,12 +1591,17 @@
                     const target = snap.docs[0]?.data();
                     const me = String(currentUserData?.customId || '').toLowerCase();
 
+                    if (target) {
+                        userCache[String(otherId).toLowerCase()] = target;
+                    }
+
                     const blockedByTarget = Array.isArray(target?.blockedUsers) &&
                         target.blockedUsers.map(x => String(x).toLowerCase()).includes(me);
+                    const blockedByMe = isBlockedByMe(otherId);
 
-                    if (blockedByTarget) {
+                    if (blockedByTarget || blockedByMe) {
                         updateComposerByAccess(activeRoomData);
-                        return alert("你已被對方封鎖，無法傳送訊息");
+                        return alert(blockedByTarget ? "你已被對方封鎖，無法傳送訊息" : "你已封鎖對方，無法傳送訊息");
                     }
                 }
             }
@@ -1665,7 +1729,7 @@
             updateComposerByAccess(activeRoomData);
             loadMessages(activeRoomId, activeRoomData, activeRoomData.lastRead?.[currentUserData.customId]);
         }
-        loadRooms();
+        refreshRoomList();
     };
 
     // 1. 圖片壓縮處理函式 (讓頭像可以像照片一樣上傳)
