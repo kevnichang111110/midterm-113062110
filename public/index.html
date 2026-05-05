@@ -536,6 +536,18 @@
         width: 18px;
         height: 18px;
     }
+    .msg-time {
+        font-size: 10px;
+        color: #bbb;
+        margin-left: 8px;
+        font-weight: normal;
+    }
+
+    /* 自己的訊息時間顯示在左邊（因為排版是反過來的） */
+    .mine .msg-time {
+        margin-left: 0;
+        margin-right: 8px;
+    }
     </style>
 </head>
 <body>
@@ -1417,6 +1429,7 @@
                 if (shouldHideMessageForCurrentUser(m)) return;
 
                 currentMessagesMap.set(docSnap.id, { id: docSnap.id, ...m });
+                const timeHTML = `<span class="msg-time">${formatTime(m.ts)}</span>`;
 
                 if (!dividerInjected && lastReadTs && m.ts && m.ts.toMillis() > lastReadTs.toMillis() && m.uid !== auth.currentUser.uid) {
                     const hr = document.createElement('div');
@@ -1471,7 +1484,10 @@
                     contentHTML = `
                         ${avatarHTML}
                         <div class="msg-content-wrapper">
-                            <span class="sender">${escapeHTML(senderName)} (@${escapeHTML(senderId)})</span>
+                            <span class="sender">
+                                ${isMine ? timeHTML + escapeHTML(senderName) : escapeHTML(senderName) + timeHTML}
+                                (@${escapeHTML(senderId)})
+                            </span>
                             ${replyBlock}
                             <div class="bubble-container">${body}${ops}</div>
                             ${reactionRow}
@@ -2015,6 +2031,24 @@
             // 屆時因為訊息包含了你的 customId，就會被過濾掉。
         }
     };
+    function formatTime(timestamp) {
+        if (!timestamp) return "傳送中..."; // 處理 serverTimestamp 尚未同步回來的瞬間
+        const date = timestamp.toDate();
+        const now = new Date();
+        
+        const hours = date.getHours().toString().padStart(2, '0');
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+        
+        // 如果是今天的訊息，只顯示時間；否則顯示日期+時間
+        const isToday = date.toDateString() === now.toDateString();
+        if (isToday) {
+            return `${hours}:${minutes}`;
+        } else {
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const day = date.getDate().toString().padStart(2, '0');
+            return `${month}/${day} ${hours}:${minutes}`;
+        }
+    }
 </script>
 
 <div id="reaction-menu" class="reaction-menu hidden">
