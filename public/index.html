@@ -1857,14 +1857,68 @@
 
     document.getElementById('confirm-add-group').onclick = async () => {
         const name = document.getElementById('target-group-name').value.trim();
-        const members = [currentUserData.customId, ...document.getElementById('target-group-members').value.split(',').map(i=>i.trim().toLowerCase())];
-        const memberDetails = {};
-        members.forEach((id) => {
-            const u = userCache[id];
-            if (u) memberDetails[id] = { name: u.displayName, avatarUrl: u.avatarUrl || '' };
-        });
-        await addDoc(collection(db, "rooms"), { name, type: 'group', members, memberDetails, lastRead: {}, lastMessageAt: serverTimestamp() });
-        closeModals();
+        const rawInput = document.getElementById('target-group-members').value.trim();
+
+        if (!name) return alert("請輸入群組名稱");
+
+        // 1. 處理輸入：轉小寫、去空格、過濾掉空的、並使用 Set 去除重複
+        let memberIds = rawInput.split(',')
+            .map(id => id.trim().toLowerCase())
+            .filter(id => id !== "" && id !== currentUserData.customId.toLowerCase());
+        
+        memberIds = [...new Set(memberIds)]; // 自動去除重複 ID
+
+        // 把自己（建立者）加入
+        const finalMembers = [currentUserData.customId.toLowerCase(), ...memberIds];
+
+        try {
+            const memberDetails = {
+                [currentUserData.customId.toLowerCase()]: { 
+                    name: currentUserData.displayName, 
+                    avatarUrl: currentUserData.avatarUrl || '' 
+                }
+            };
+
+            // 2. 如果有邀請其他人，驗證這些 ID 是否存在
+            if (memberIds.length > 0) {
+                // Firebase 的 'in' 查詢一次最多支援 30 個 ID (舊版 10 個)，對作業來說足夠了
+                const q = query(collection(db, "users"), where("customId", "in", memberIds));
+                const snap = await getDocs(q);
+
+                const foundIds = snap.docs.map(d => d.data().customId.toLowerCase());
+                const invalidIds = memberIds.filter(id => !foundIds.includes(id));
+
+                // 如果發現有人不存在，立刻擋下並警告
+                if (invalidIds.length > 0) {
+                    return alert(`建立失敗！以下 ID 不存在：\n${invalidIds.join(', ')}`);
+                }
+
+                // 填寫成員詳細資料 (memberDetails)
+                snap.forEach(d => {
+                    const u = d.data();
+                    memberDetails[u.customId.toLowerCase()] = { 
+                        name: u.displayName, 
+                        avatarUrl: u.avatarUrl || '' 
+                    };
+                });
+            }
+
+            // 3. 正式寫入資料庫
+            await addDoc(collection(db, "rooms"), { 
+                name: name, 
+                type: 'group', 
+                members: finalMembers, 
+                memberDetails, 
+                lastRead: {}, 
+                lastMessageAt: serverTimestamp() 
+            });
+
+            alert("群組建立成功！");
+            closeModals();
+        } catch (e) {
+            console.error("建立群組出錯:", e);
+            alert("建立失敗，請稍後再試");
+        }
     };
 
     document.getElementById('send-btn').onclick = () => sendMsg(document.getElementById('msg-input').value);
