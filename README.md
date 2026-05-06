@@ -3,6 +3,8 @@
 
 ## 專頁連結 (Web Page Link)
 (https://midterm-113062110.web.app)
+## github連結 (github Link)
+https://github.com/kevnichang111110/midterm-113062110.git
 
 ## Scoring Checksheet
 
